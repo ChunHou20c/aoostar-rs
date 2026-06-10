@@ -29,6 +29,12 @@ pub enum DashboardError {
 
     #[error("failed to compute dashboard layout: {message}")]
     Layout { message: String },
+
+    #[error("failed to load asset {path:?}: {message}")]
+    Asset { path: PathBuf, message: String },
+
+    #[error("failed to render dashboard: {message}")]
+    Render { message: String },
 }
 
 impl DashboardError {
@@ -48,6 +54,19 @@ impl DashboardError {
 
     pub(crate) fn layout(message: impl Into<String>) -> Self {
         Self::Layout {
+            message: message.into(),
+        }
+    }
+
+    pub(crate) fn asset(path: impl Into<PathBuf>, message: impl Into<String>) -> Self {
+        Self::Asset {
+            path: path.into(),
+            message: message.into(),
+        }
+    }
+
+    pub(crate) fn render(message: impl Into<String>) -> Self {
+        Self::Render {
             message: message.into(),
         }
     }

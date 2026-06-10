@@ -2,8 +2,9 @@
 
 Widget dashboards are the planned headless layout mode for `asterctl`. The
 `aster-ui` crate currently provides configuration validation, strict CSS
-parsing, computed styles, and static layout. Painting, value binding, and CLI
-integration are still under development.
+parsing, computed styles, static layout, and software rendering for text and
+images. Value binding, progress painting, and CLI integration are still under
+development.
 
 See the [execution plan](widget-renderer-plan.md) for implementation phases and
 completion criteria.
@@ -18,6 +19,10 @@ width = 960
 height = 376
 stylesheet = "dashboard.css"
 background = "#101318"
+fonts = [
+  "../../../fonts/DejaVuSans.ttf",
+  "../../../fonts/HarmonyOS_Sans_SC_Bold.ttf",
+]
 
 [root]
 type = "row"
@@ -38,6 +43,12 @@ max = 100
 Paths are relative to the dashboard file. Unknown fields, duplicate IDs,
 invalid widget fields, missing files, zero display dimensions, and invalid
 progress ranges are rejected during loading.
+
+Font files are explicit dashboard assets. This avoids host font discovery and
+makes output reproducible on NixOS and other systems. A missing configured font
+or image is reported with its resolved path. If `font-family` does not match a
+loaded face, `cosmic-text` applies its normal fallback matching within the
+loaded font database.
 
 ## Widgets
 
@@ -103,8 +114,23 @@ and alignment inherit from the parent.
 
 `Dashboard::compute_layout` produces an owned tree of absolute pixel
 coordinates. Flex containers use Taffy. Stack children share the parent content
-box and paint in configuration order. Leaf widgets without explicit dimensions
-have zero intrinsic size until text and image measurement are implemented.
+box and paint in configuration order. Text and images contribute intrinsic
+sizes when dimensions are `auto`.
+
+Create one `Renderer` per loaded dashboard and reuse it so decoded images,
+loaded fonts, and rasterized glyphs remain cached:
+
+```rust
+let dashboard = aster_ui::Dashboard::load("dashboard.toml")?;
+let mut renderer = aster_ui::Renderer::new(&dashboard)?;
+let image: image::RgbaImage = renderer.render(&dashboard)?;
+```
+
+The renderer paints dashboard and widget backgrounds, borders and rounded
+corners, text, and images. It supports inherited opacity, rectangular
+`overflow: hidden` clipping, text alignment and wrapping, and all four
+`object-fit` modes. Rounded overflow clipping and `text-overflow: ellipsis`
+remain future work.
 
 ## Examples
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: Copyright (c) 2026 Chunhou Wong
 
-use aster_ui::{Dashboard, FlexDirection, Widget, WidgetKind};
+use aster_ui::{Dashboard, FlexDirection, Renderer, Widget, WidgetKind};
 use std::path::{Path, PathBuf};
 
 fn workspace_path(path: impl AsRef<Path>) -> PathBuf {
@@ -43,6 +43,12 @@ fn loads_system_overview_example() {
         panic!("system overview root should be a flex widget");
     };
     assert_eq!(*direction, FlexDirection::Row);
+
+    let image = Renderer::new(&dashboard)
+        .unwrap()
+        .render(&dashboard)
+        .unwrap();
+    assert_eq!(image.dimensions(), (960, 376));
 }
 
 #[test]
@@ -64,4 +70,10 @@ fn loads_storage_overview_example() {
         panic!("storage overview root should be a flex widget");
     };
     assert_eq!(*direction, FlexDirection::Column);
+
+    let image = Renderer::new(&dashboard)
+        .unwrap()
+        .render(&dashboard)
+        .unwrap();
+    assert_eq!(image.dimensions(), (960, 376));
 }

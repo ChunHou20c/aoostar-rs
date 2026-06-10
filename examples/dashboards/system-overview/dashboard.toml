@@ -3,6 +3,10 @@ width = 960
 height = 376
 stylesheet = "dashboard.css"
 background = "#101318"
+fonts = [
+    "../../../fonts/DejaVuSans.ttf",
+    "../../../fonts/HarmonyOS_Sans_SC_Bold.ttf",
+]
 
 [root]
 type = "row"

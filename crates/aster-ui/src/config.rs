@@ -3,6 +3,7 @@
 
 use crate::error::DashboardError;
 use crate::layout::LayoutTree;
+use crate::renderer::Renderer;
 use crate::style::StyleSheet;
 use crate::widget::{FlexDirection, ProgressOrientation, Widget, WidgetKind};
 use serde::Deserialize;
@@ -55,12 +56,7 @@ impl Dashboard {
     }
 
     pub fn compute_layout(&self) -> Result<LayoutTree, DashboardError> {
-        LayoutTree::compute(
-            &self.root,
-            &self.stylesheet,
-            self.options.width,
-            self.options.height,
-        )
+        Renderer::new(self)?.compute_layout(self)
     }
 }
 
@@ -70,6 +66,7 @@ pub struct DashboardOptions {
     height: u32,
     stylesheet: PathBuf,
     background: Option<String>,
+    fonts: Vec<PathBuf>,
 }
 
 impl DashboardOptions {
@@ -87,6 +84,10 @@ impl DashboardOptions {
 
     pub fn background(&self) -> Option<&str> {
         self.background.as_deref()
+    }
+
+    pub fn fonts(&self) -> &[PathBuf] {
+        &self.fonts
     }
 }
 
@@ -123,6 +124,8 @@ struct RawDashboardOptions {
     height: u32,
     stylesheet: PathBuf,
     background: Option<String>,
+    #[serde(default)]
+    fonts: Vec<PathBuf>,
 }
 
 impl RawDashboardOptions {
@@ -145,12 +148,21 @@ impl RawDashboardOptions {
 
         let stylesheet =
             resolve_existing_file(source, base_dir, &self.stylesheet, "dashboard.stylesheet")?;
+        let fonts = self
+            .fonts
+            .iter()
+            .enumerate()
+            .map(|(index, font)| {
+                resolve_existing_file(source, base_dir, font, &format!("dashboard.fonts[{index}]"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(DashboardOptions {
             width: self.width,
             height: self.height,
             stylesheet,
             background: self.background,
+            fonts,
         })
     }
 }

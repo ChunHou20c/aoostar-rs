@@ -2,11 +2,12 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 Chunhou Wong
 
 use crate::error::DashboardError;
+use crate::renderer::AssetCache;
 use crate::style::{
     Align, ComputedStyle, Display, Edges, FlexDirectionStyle, JustifyContent, Length, Overflow,
     StyleSheet,
 };
-use crate::widget::Widget;
+use crate::widget::{Widget, WidgetKind};
 use taffy::Point;
 use taffy::prelude::{
     AlignItems, AvailableSpace, Dimension, Display as TaffyDisplay,
@@ -20,6 +21,7 @@ pub struct LayoutTree {
 }
 
 impl LayoutTree {
+    #[cfg(test)]
     pub(crate) fn compute(
         root: &Widget,
         stylesheet: &StyleSheet,
@@ -45,6 +47,54 @@ impl LayoutTree {
         })
     }
 
+    pub(crate) fn compute_with_assets(
+        root: &Widget,
+        stylesheet: &StyleSheet,
+        width: u32,
+        height: u32,
+        assets: &mut AssetCache,
+    ) -> Result<Self, DashboardError> {
+        let mut taffy = TaffyTree::<MeasureContext>::new();
+        let built = build_measured_node(
+            &mut taffy, root, stylesheet, None, None, true, width, height,
+        )?;
+        let mut measure_error = None;
+        taffy
+            .compute_layout_with_measure(
+                built.node,
+                Size {
+                    width: AvailableSpace::Definite(width as f32),
+                    height: AvailableSpace::Definite(height as f32),
+                },
+                |known, available, _, context, _| {
+                    let result = match context {
+                        Some(MeasureContext::Text { text, style }) => {
+                            assets.measure_text(text, style, known, available)
+                        }
+                        Some(MeasureContext::Image { source }) => {
+                            assets.measure_image(source, known)
+                        }
+                        None => Ok(Size::ZERO),
+                    };
+                    match result {
+                        Ok(size) => size,
+                        Err(error) => {
+                            measure_error = Some(error);
+                            Size::ZERO
+                        }
+                    }
+                },
+            )
+            .map_err(|error| DashboardError::layout(error.to_string()))?;
+        if let Some(error) = measure_error {
+            return Err(error);
+        }
+
+        Ok(Self {
+            root: collect_measured_layout(&taffy, built, 0.0, 0.0)?,
+        })
+    }
+
     pub fn root(&self) -> &LayoutNode {
         &self.root
     }
@@ -57,6 +107,11 @@ pub struct LayoutNode {
     y: f32,
     width: f32,
     height: f32,
+    content_x: f32,
+    content_y: f32,
+    content_width: f32,
+    content_height: f32,
+    style: ComputedStyle,
     children: Vec<LayoutNode>,
 }
 
@@ -81,6 +136,26 @@ impl LayoutNode {
         self.height
     }
 
+    pub fn content_x(&self) -> f32 {
+        self.content_x
+    }
+
+    pub fn content_y(&self) -> f32 {
+        self.content_y
+    }
+
+    pub fn content_width(&self) -> f32 {
+        self.content_width
+    }
+
+    pub fn content_height(&self) -> f32 {
+        self.content_height
+    }
+
+    pub fn style(&self) -> &ComputedStyle {
+        &self.style
+    }
+
     pub fn children(&self) -> &[LayoutNode] {
         &self.children
     }
@@ -99,9 +174,17 @@ struct BuiltNode {
     node: NodeId,
     source_path: String,
     children: Vec<BuiltNode>,
+    style: ComputedStyle,
+}
+
+#[derive(Debug)]
+enum MeasureContext {
+    Text { text: String, style: ComputedStyle },
+    Image { source: std::path::PathBuf },
 }
 
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 fn build_node(
     taffy: &mut TaffyTree<()>,
     widget: &Widget,
@@ -149,9 +232,11 @@ fn build_node(
         node,
         source_path: widget.source_path().to_string(),
         children,
+        style: computed,
     })
 }
 
+#[cfg(test)]
 fn collect_layout(
     taffy: &TaffyTree<()>,
     built: BuiltNode,
@@ -175,6 +260,129 @@ fn collect_layout(
         y,
         width: layout.size.width,
         height: layout.size.height,
+        content_x: x + layout.border.left + layout.padding.left,
+        content_y: y + layout.border.top + layout.padding.top,
+        content_width: (layout.size.width
+            - layout.border.left
+            - layout.border.right
+            - layout.padding.left
+            - layout.padding.right)
+            .max(0.0),
+        content_height: (layout.size.height
+            - layout.border.top
+            - layout.border.bottom
+            - layout.padding.top
+            - layout.padding.bottom)
+            .max(0.0),
+        style: built.style,
+        children,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_measured_node(
+    taffy: &mut TaffyTree<MeasureContext>,
+    widget: &Widget,
+    stylesheet: &StyleSheet,
+    parent_style: Option<&ComputedStyle>,
+    stack_inset: Option<Edges>,
+    is_root: bool,
+    display_width: u32,
+    display_height: u32,
+) -> Result<BuiltNode, DashboardError> {
+    let computed = stylesheet.compute(widget, parent_style);
+    let is_stack = computed.display == Display::Stack;
+    let children = widget
+        .children()
+        .iter()
+        .map(|child| {
+            build_measured_node(
+                taffy,
+                child,
+                stylesheet,
+                Some(&computed),
+                is_stack.then_some(computed.padding),
+                false,
+                display_width,
+                display_height,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let child_ids: Vec<_> = children.iter().map(|child| child.node).collect();
+    let style = to_taffy_style(
+        &computed,
+        stack_inset,
+        is_root,
+        display_width,
+        display_height,
+    );
+    let context = match widget.kind() {
+        WidgetKind::Text { text } => Some(MeasureContext::Text {
+            text: text.clone(),
+            style: computed.clone(),
+        }),
+        WidgetKind::Image { source } => Some(MeasureContext::Image {
+            source: source.clone(),
+        }),
+        _ => None,
+    };
+    let node = if child_ids.is_empty() {
+        if let Some(context) = context {
+            taffy.new_leaf_with_context(style, context)
+        } else {
+            taffy.new_leaf(style)
+        }
+    } else {
+        taffy.new_with_children(style, &child_ids)
+    }
+    .map_err(|error| DashboardError::layout(error.to_string()))?;
+
+    Ok(BuiltNode {
+        node,
+        source_path: widget.source_path().to_string(),
+        children,
+        style: computed,
+    })
+}
+
+fn collect_measured_layout(
+    taffy: &TaffyTree<MeasureContext>,
+    built: BuiltNode,
+    parent_x: f32,
+    parent_y: f32,
+) -> Result<LayoutNode, DashboardError> {
+    let layout = taffy
+        .layout(built.node)
+        .map_err(|error| DashboardError::layout(error.to_string()))?;
+    let x = parent_x + layout.location.x;
+    let y = parent_y + layout.location.y;
+    let children = built
+        .children
+        .into_iter()
+        .map(|child| collect_measured_layout(taffy, child, x, y))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(LayoutNode {
+        source_path: built.source_path,
+        x,
+        y,
+        width: layout.size.width,
+        height: layout.size.height,
+        content_x: x + layout.border.left + layout.padding.left,
+        content_y: y + layout.border.top + layout.padding.top,
+        content_width: (layout.size.width
+            - layout.border.left
+            - layout.border.right
+            - layout.padding.left
+            - layout.padding.right)
+            .max(0.0),
+        content_height: (layout.size.height
+            - layout.border.top
+            - layout.border.bottom
+            - layout.padding.top
+            - layout.padding.bottom)
+            .max(0.0),
+        style: built.style,
         children,
     })
 }
