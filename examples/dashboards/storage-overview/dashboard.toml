@@ -1,0 +1,57 @@
+[dashboard]
+width = 960
+height = 376
+stylesheet = "dashboard.css"
+background = "#0b0d10"
+
+[root]
+type = "column"
+id = "storage-overview"
+class = ["dashboard"]
+
+[[root.children]]
+type = "text"
+id = "title"
+text = "STORAGE"
+
+[[root.children]]
+type = "row"
+class = ["drive-row"]
+
+[[root.children.children]]
+type = "column"
+class = ["drive"]
+
+[[root.children.children.children]]
+type = "text"
+class = ["drive-name"]
+text = "SSD 1"
+
+[[root.children.children.children]]
+type = "progress"
+class = ["drive-progress"]
+value = "{{ storage_ssd[0]['used'] }}"
+
+[[root.children.children.children]]
+type = "text"
+class = ["drive-detail"]
+text = "{{ storage_ssd[0]['used'] }}% / {{ storage_ssd[0]['temperature'] }} C"
+
+[[root.children.children]]
+type = "column"
+class = ["drive"]
+
+[[root.children.children.children]]
+type = "text"
+class = ["drive-name"]
+text = "HDD 1"
+
+[[root.children.children.children]]
+type = "progress"
+class = ["drive-progress"]
+value = "{{ storage_hdd[0]['used'] }}"
+
+[[root.children.children.children]]
+type = "text"
+class = ["drive-detail"]
+text = "{{ storage_hdd[0]['used'] }}% / {{ storage_hdd[0]['temperature'] }} C"

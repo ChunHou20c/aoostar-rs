@@ -30,4 +30,5 @@
 # Development
 
 - [LCD Protocol](lcd_protocol.md)
+- [Widget Dashboards](widget-dashboard.md)
 - [Widget Renderer Execution Plan](widget-renderer-plan.md)

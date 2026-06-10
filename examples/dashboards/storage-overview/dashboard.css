@@ -1,0 +1,42 @@
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 24px;
+    background-color: #0b0d10;
+    color: #f5f5f5;
+}
+
+#title {
+    font-family: "DejaVu Sans";
+    font-size: 34px;
+    font-weight: 700;
+}
+
+.drive-row {
+    display: flex;
+    flex-direction: row;
+    gap: 18px;
+    flex-grow: 1;
+}
+
+.drive {
+    flex-grow: 1;
+    padding: 20px;
+    background-color: #171a20;
+    border-radius: 10px;
+}
+
+.drive-name {
+    font-size: 24px;
+}
+
+.drive-progress {
+    height: 18px;
+    color: #a6e22e;
+}
+
+.drive-detail {
+    font-size: 18px;
+    color: #a9b1bd;
+}

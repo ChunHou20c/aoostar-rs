@@ -1,0 +1,36 @@
+.dashboard {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    padding: 20px;
+    background-color: #101318;
+}
+
+.metric {
+    flex-grow: 1;
+    padding: 18px;
+    background-color: #1a2029;
+    border-radius: 12px;
+    color: #f4f7fb;
+    text-align: center;
+}
+
+.metric-label {
+    font-family: "DejaVu Sans";
+    font-size: 18px;
+    color: #92a0b3;
+}
+
+.metric-value {
+    font-family: "DejaVu Sans";
+    font-size: 64px;
+}
+
+.metric-progress {
+    height: 12px;
+    color: #66d9ef;
+}
+
+.temperature-progress {
+    color: #ff8a65;
+}

@@ -1,0 +1,80 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: Copyright (c) 2026 Chunhou Wong
+
+use std::path::PathBuf;
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum FlexDirection {
+    Row,
+    Column,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ProgressOrientation {
+    Horizontal,
+    Vertical,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Widget {
+    source_path: String,
+    id: Option<String>,
+    classes: Vec<String>,
+    kind: WidgetKind,
+}
+
+impl Widget {
+    pub(crate) fn new(
+        source_path: String,
+        id: Option<String>,
+        classes: Vec<String>,
+        kind: WidgetKind,
+    ) -> Self {
+        Self {
+            source_path,
+            id,
+            classes,
+            kind,
+        }
+    }
+
+    pub fn source_path(&self) -> &str {
+        &self.source_path
+    }
+
+    pub fn id(&self) -> Option<&str> {
+        self.id.as_deref()
+    }
+
+    pub fn classes(&self) -> &[String] {
+        &self.classes
+    }
+
+    pub fn kind(&self) -> &WidgetKind {
+        &self.kind
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum WidgetKind {
+    Flex {
+        direction: FlexDirection,
+        children: Vec<Widget>,
+    },
+    Stack {
+        children: Vec<Widget>,
+    },
+    Text {
+        text: String,
+    },
+    Image {
+        source: PathBuf,
+    },
+    Spacer,
+    Progress {
+        value: String,
+        min: f64,
+        max: f64,
+        orientation: ProgressOrientation,
+    },
+}

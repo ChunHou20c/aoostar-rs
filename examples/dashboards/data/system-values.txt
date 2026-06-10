@@ -1,0 +1,11 @@
+cpu_temperature: 65
+cpu_percent: 47.7
+memory_usage: 77
+memory_temperature: 48
+net_ip_address: 192.0.2.10
+gpu_core: 38
+gpu_temperature: 58
+net_upload_speed: 100
+net_upload_speed#unit: K/S
+net_download_speed: 120
+net_download_speed#unit: M/S

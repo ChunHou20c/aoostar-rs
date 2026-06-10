@@ -1,0 +1,68 @@
+[dashboard]
+width = 960
+height = 376
+stylesheet = "dashboard.css"
+background = "#101318"
+
+[root]
+type = "row"
+id = "system-overview"
+class = ["dashboard"]
+
+[[root.children]]
+type = "column"
+class = ["metric", "cpu"]
+
+[[root.children.children]]
+type = "text"
+class = ["metric-label"]
+text = "CPU"
+
+[[root.children.children]]
+type = "text"
+class = ["metric-value"]
+text = "{{ cpu_percent | number(0) }}%"
+
+[[root.children.children]]
+type = "progress"
+class = ["metric-progress"]
+value = "{{ cpu_percent }}"
+
+[[root.children]]
+type = "column"
+class = ["metric", "temperature"]
+
+[[root.children.children]]
+type = "text"
+class = ["metric-label"]
+text = "TEMPERATURE"
+
+[[root.children.children]]
+type = "text"
+class = ["metric-value"]
+text = "{{ cpu_temperature | number(0) }} C"
+
+[[root.children.children]]
+type = "progress"
+class = ["metric-progress", "temperature-progress"]
+value = "{{ cpu_temperature }}"
+max = 100
+
+[[root.children]]
+type = "column"
+class = ["metric", "memory"]
+
+[[root.children.children]]
+type = "text"
+class = ["metric-label"]
+text = "MEMORY"
+
+[[root.children.children]]
+type = "text"
+class = ["metric-value"]
+text = "{{ memory_usage | number(0) }}%"
+
+[[root.children.children]]
+type = "progress"
+class = ["metric-progress"]
+value = "{{ memory_usage }}"
