@@ -2,16 +2,19 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 Chunhou Wong
 
 use crate::error::DashboardError;
+use crate::layout::LayoutTree;
+use crate::style::StyleSheet;
 use crate::widget::{FlexDirection, ProgressOrientation, Widget, WidgetKind};
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Dashboard {
     source: PathBuf,
     options: DashboardOptions,
+    stylesheet: StyleSheet,
     root: Widget,
 }
 
@@ -45,6 +48,19 @@ impl Dashboard {
 
     pub fn root(&self) -> &Widget {
         &self.root
+    }
+
+    pub fn stylesheet(&self) -> &StyleSheet {
+        &self.stylesheet
+    }
+
+    pub fn compute_layout(&self) -> Result<LayoutTree, DashboardError> {
+        LayoutTree::compute(
+            &self.root,
+            &self.stylesheet,
+            self.options.width,
+            self.options.height,
+        )
     }
 }
 
@@ -85,6 +101,7 @@ impl RawDashboard {
     fn normalize(self, source: PathBuf) -> Result<Dashboard, DashboardError> {
         let base_dir = source.parent().unwrap_or_else(|| Path::new("."));
         let options = self.dashboard.normalize(&source, base_dir)?;
+        let stylesheet = StyleSheet::load(options.stylesheet())?;
         let mut ids = HashSet::new();
         let root = self
             .root
@@ -93,6 +110,7 @@ impl RawDashboard {
         Ok(Dashboard {
             source,
             options,
+            stylesheet,
             root,
         })
     }
@@ -632,5 +650,29 @@ max = 0
 
         let error = Dashboard::load(path).unwrap_err().to_string();
         assert!(error.contains("progress range"), "{error}");
+    }
+
+    #[test]
+    fn rejects_invalid_stylesheet() {
+        let (dir, path) = dashboard_fixture(
+            r#"
+[dashboard]
+width = 960
+height = 376
+stylesheet = "dashboard.css"
+
+[root]
+type = "spacer"
+"#,
+        );
+        fs::write(
+            dir.path().join("dashboard.css"),
+            "spacer { unsupported: true; }",
+        )
+        .unwrap();
+
+        let error = Dashboard::load(path).unwrap_err().to_string();
+        assert!(error.contains("failed to parse stylesheet"), "{error}");
+        assert!(error.contains("unsupported property"), "{error}");
     }
 }

@@ -11,6 +11,12 @@ repository.workspace = true
 
 [dependencies]
 serde = { version = "1.0.219", features = ["derive"] }
+taffy = { version = "0.10.1", default-features = false, features = [
+  "std",
+  "taffy_tree",
+  "flexbox",
+  "block_layout",
+] }
 thiserror = "2.0.16"
 toml = "0.8.23"
 

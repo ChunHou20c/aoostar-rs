@@ -33,6 +33,11 @@ fn loads_system_overview_example() {
     assert_eq!(dashboard.options().height(), 376);
     assert_eq!(dashboard.root().id(), Some("system-overview"));
     assert_eq!(count_widgets(dashboard.root()), 13);
+    let layout = dashboard.compute_layout().unwrap();
+    assert_eq!(
+        (layout.root().width(), layout.root().height()),
+        (960.0, 376.0)
+    );
 
     let WidgetKind::Flex { direction, .. } = dashboard.root().kind() else {
         panic!("system overview root should be a flex widget");
@@ -49,6 +54,11 @@ fn loads_storage_overview_example() {
 
     assert_eq!(dashboard.root().id(), Some("storage-overview"));
     assert_eq!(count_widgets(dashboard.root()), 11);
+    let layout = dashboard.compute_layout().unwrap();
+    assert_eq!(
+        (layout.root().width(), layout.root().height()),
+        (960.0, 376.0)
+    );
 
     let WidgetKind::Flex { direction, .. } = dashboard.root().kind() else {
         panic!("storage overview root should be a flex widget");

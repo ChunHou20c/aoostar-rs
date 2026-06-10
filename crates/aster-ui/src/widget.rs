@@ -53,6 +53,34 @@ impl Widget {
     pub fn kind(&self) -> &WidgetKind {
         &self.kind
     }
+
+    pub fn type_name(&self) -> &'static str {
+        match self.kind {
+            WidgetKind::Flex {
+                direction: FlexDirection::Row,
+                ..
+            } => "row",
+            WidgetKind::Flex {
+                direction: FlexDirection::Column,
+                ..
+            } => "column",
+            WidgetKind::Stack { .. } => "stack",
+            WidgetKind::Text { .. } => "text",
+            WidgetKind::Image { .. } => "image",
+            WidgetKind::Spacer => "spacer",
+            WidgetKind::Progress { .. } => "progress",
+        }
+    }
+
+    pub fn children(&self) -> &[Widget] {
+        match &self.kind {
+            WidgetKind::Flex { children, .. } | WidgetKind::Stack { children } => children,
+            WidgetKind::Text { .. }
+            | WidgetKind::Image { .. }
+            | WidgetKind::Spacer
+            | WidgetKind::Progress { .. } => &[],
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
