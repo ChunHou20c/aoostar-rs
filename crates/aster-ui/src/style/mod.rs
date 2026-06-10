@@ -449,7 +449,7 @@ text.metric { color: #333333; }
         .unwrap();
         let widget = widget(
             WidgetKind::Text {
-                text: "CPU".to_string(),
+                text: crate::Binding::parse("CPU").unwrap(),
             },
             Some("cpu"),
             &["metric"],
@@ -484,7 +484,7 @@ text.metric { color: #333333; }
         .unwrap();
         let child = widget(
             WidgetKind::Text {
-                text: "child".to_string(),
+                text: crate::Binding::parse("child").unwrap(),
             },
             None,
             &[],

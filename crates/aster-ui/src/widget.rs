@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: Copyright (c) 2026 Chunhou Wong
 
+use crate::binding::Binding;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -93,14 +94,14 @@ pub enum WidgetKind {
         children: Vec<Widget>,
     },
     Text {
-        text: String,
+        text: Binding,
     },
     Image {
         source: PathBuf,
     },
     Spacer,
     Progress {
-        value: String,
+        value: Binding,
         min: f64,
         max: f64,
         orientation: ProgressOrientation,

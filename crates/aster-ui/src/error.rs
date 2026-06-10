@@ -35,6 +35,13 @@ pub enum DashboardError {
 
     #[error("failed to render dashboard: {message}")]
     Render { message: String },
+
+    #[error("failed to resolve dashboard {path:?} at {widget}: {message}")]
+    Binding {
+        path: PathBuf,
+        widget: String,
+        message: String,
+    },
 }
 
 impl DashboardError {
@@ -67,6 +74,18 @@ impl DashboardError {
 
     pub(crate) fn render(message: impl Into<String>) -> Self {
         Self::Render {
+            message: message.into(),
+        }
+    }
+
+    pub(crate) fn binding(
+        path: impl Into<PathBuf>,
+        widget: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self::Binding {
+            path: path.into(),
+            widget: widget.into(),
             message: message.into(),
         }
     }

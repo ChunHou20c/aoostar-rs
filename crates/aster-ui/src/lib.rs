@@ -4,6 +4,7 @@
 #![forbid(non_ascii_idents)]
 #![deny(unsafe_code)]
 
+mod binding;
 mod config;
 mod error;
 mod layout;
@@ -11,6 +12,7 @@ mod renderer;
 mod style;
 mod widget;
 
+pub use binding::{Binding, BindingResolveError, ValueMap};
 pub use config::{Dashboard, DashboardOptions};
 pub use error::DashboardError;
 pub use layout::{LayoutNode, LayoutTree};

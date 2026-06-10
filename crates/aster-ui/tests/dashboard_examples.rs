@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: Copyright (c) 2026 Chunhou Wong
 
-use aster_ui::{Dashboard, FlexDirection, Renderer, Widget, WidgetKind};
+use aster_ui::{Dashboard, FlexDirection, Renderer, ValueMap, Widget, WidgetKind};
+use std::fs;
 use std::path::{Path, PathBuf};
 
 fn workspace_path(path: impl AsRef<Path>) -> PathBuf {
@@ -20,6 +21,15 @@ fn count_widgets(widget: &Widget) -> usize {
     };
 
     1 + children.iter().map(count_widgets).sum::<usize>()
+}
+
+fn load_values(path: impl AsRef<Path>) -> ValueMap {
+    fs::read_to_string(workspace_path(path))
+        .unwrap()
+        .lines()
+        .filter_map(|line| line.split_once(':'))
+        .map(|(key, value)| (key.trim().to_string(), value.trim().to_string()))
+        .collect()
 }
 
 #[test]
@@ -46,7 +56,10 @@ fn loads_system_overview_example() {
 
     let image = Renderer::new(&dashboard)
         .unwrap()
-        .render(&dashboard)
+        .render_with_values(
+            &dashboard,
+            &load_values("examples/dashboards/data/system-values.txt"),
+        )
         .unwrap();
     assert_eq!(image.dimensions(), (960, 376));
 }
@@ -73,7 +86,10 @@ fn loads_storage_overview_example() {
 
     let image = Renderer::new(&dashboard)
         .unwrap()
-        .render(&dashboard)
+        .render_with_values(
+            &dashboard,
+            &load_values("examples/dashboards/data/storage-values.txt"),
+        )
         .unwrap();
     assert_eq!(image.dimensions(), (960, 376));
 }

@@ -3,8 +3,8 @@
 Widget dashboards are the planned headless layout mode for `asterctl`. The
 `aster-ui` crate currently provides configuration validation, strict CSS
 parsing, computed styles, static layout, and software rendering for text and
-images. Value binding, progress painting, and CLI integration are still under
-development.
+images. Value binding and progress painting are implemented; CLI integration
+is still under development.
 
 See the [execution plan](widget-renderer-plan.md) for implementation phases and
 completion criteria.
@@ -71,7 +71,31 @@ letters, digits, `_`, and `-`.
 `progress.orientation` accepts `horizontal` or `vertical`. Its default range is
 0 through 100 and its default orientation is horizontal.
 
-Binding strings are stored but not evaluated yet.
+Text and progress values support parsed sensor interpolation:
+
+```text
+{{ sensor_name }}
+{{ sensor_name | default("N/A") }}
+{{ sensor_name | number(0) }}
+{{ sensor_name | number(1) }}
+```
+
+Text may contain multiple interpolations mixed with literal content. Missing
+values resolve to an empty string unless `default` is specified. The `number`
+filter rounds finite numeric values to 0 through 10 decimal places. Invalid
+binding syntax is rejected during dashboard loading.
+
+Pass sensor values using `ValueMap`, which is compatible with the existing
+`HashMap<String, String>` sensor state:
+
+```rust
+let image = renderer.render_with_values(&dashboard, &values)?;
+```
+
+Progress widgets clamp resolved numeric values to `min` and `max`. Missing
+values use `min`; malformed present values return an error identifying the
+widget path. `background-color` paints the track and `color` paints the fill.
+Vertical progress fills from bottom to top.
 
 ## Stylesheet Contract
 
@@ -127,10 +151,10 @@ let image: image::RgbaImage = renderer.render(&dashboard)?;
 ```
 
 The renderer paints dashboard and widget backgrounds, borders and rounded
-corners, text, and images. It supports inherited opacity, rectangular
-`overflow: hidden` clipping, text alignment and wrapping, and all four
-`object-fit` modes. Rounded overflow clipping and `text-overflow: ellipsis`
-remain future work.
+corners, text, images, and progress fills. It supports inherited opacity,
+rectangular `overflow: hidden` clipping, text alignment and wrapping, and all
+four `object-fit` modes. Rounded overflow clipping and
+`text-overflow: ellipsis` remain future work.
 
 ## Examples
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: Copyright (c) 2026 Chunhou Wong
 
+use crate::ValueMap;
 use crate::config::Dashboard;
 use crate::error::DashboardError;
 use crate::layout::{LayoutNode, LayoutTree};
@@ -35,17 +36,35 @@ impl Renderer {
     }
 
     pub fn compute_layout(&mut self, dashboard: &Dashboard) -> Result<LayoutTree, DashboardError> {
+        self.compute_layout_with_values(dashboard, &ValueMap::new())
+    }
+
+    pub fn compute_layout_with_values(
+        &mut self,
+        dashboard: &Dashboard,
+        values: &ValueMap,
+    ) -> Result<LayoutTree, DashboardError> {
         LayoutTree::compute_with_assets(
+            dashboard.source(),
             dashboard.root(),
             dashboard.stylesheet(),
             dashboard.options().width(),
             dashboard.options().height(),
             &mut self.assets,
+            values,
         )
     }
 
     pub fn render(&mut self, dashboard: &Dashboard) -> Result<RgbaImage, DashboardError> {
-        let layout = self.compute_layout(dashboard)?;
+        self.render_with_values(dashboard, &ValueMap::new())
+    }
+
+    pub fn render_with_values(
+        &mut self,
+        dashboard: &Dashboard,
+        values: &ValueMap,
+    ) -> Result<RgbaImage, DashboardError> {
+        let layout = self.compute_layout_with_values(dashboard, values)?;
         let mut pixmap = Pixmap::new(dashboard.options().width(), dashboard.options().height())
             .ok_or_else(|| DashboardError::render("dashboard dimensions are too large"))?;
 
@@ -59,7 +78,14 @@ impl Renderer {
             dashboard.options().width() as i32,
             dashboard.options().height() as i32,
         );
-        self.paint_node(&mut pixmap, dashboard.root(), layout.root(), clip, 1.0)?;
+        self.paint_node(
+            &mut pixmap,
+            dashboard,
+            dashboard.root(),
+            layout.root(),
+            values,
+            PaintState { clip, opacity: 1.0 },
+        )?;
 
         let mut output = RgbaImage::new(pixmap.width(), pixmap.height());
         for (target, source) in output.pixels_mut().zip(pixmap.pixels()) {
@@ -72,41 +98,137 @@ impl Renderer {
     fn paint_node(
         &mut self,
         pixmap: &mut Pixmap,
+        dashboard: &Dashboard,
         widget: &Widget,
         layout: &LayoutNode,
-        parent_clip: ClipRect,
-        parent_opacity: f32,
+        values: &ValueMap,
+        state: PaintState,
     ) -> Result<(), DashboardError> {
         if layout.width() <= 0.0 || layout.height() <= 0.0 {
             return Ok(());
         }
 
-        let opacity = (parent_opacity * layout.style().opacity).clamp(0.0, 1.0);
-        paint_box(pixmap, layout, opacity, parent_clip);
+        let opacity = (state.opacity * layout.style().opacity).clamp(0.0, 1.0);
+        paint_box(pixmap, layout, opacity, state.clip);
         let own_clip = ClipRect::from_layout(layout);
         let child_clip = if layout.style().overflow == Overflow::Hidden {
-            parent_clip.intersect(own_clip)
+            state.clip.intersect(own_clip)
         } else {
-            parent_clip
+            state.clip
         };
 
         match widget.kind() {
             WidgetKind::Text { text } => {
+                let text = text.resolve(values).map_err(|error| {
+                    DashboardError::binding(
+                        dashboard.source(),
+                        widget.source_path(),
+                        error.to_string(),
+                    )
+                })?;
                 self.assets
-                    .paint_text(pixmap, text, layout, opacity, child_clip);
+                    .paint_text(pixmap, &text, layout, opacity, child_clip);
             }
             WidgetKind::Image { source } => {
                 let image_clip = child_clip.intersect(ClipRect::from_content(layout));
                 self.assets
                     .paint_image(pixmap, source, layout, opacity, image_clip)?;
             }
+            WidgetKind::Progress {
+                value,
+                min,
+                max,
+                orientation,
+            } => {
+                let value = value.resolve(values).map_err(|error| {
+                    DashboardError::binding(
+                        dashboard.source(),
+                        widget.source_path(),
+                        error.to_string(),
+                    )
+                })?;
+                let value = if value.trim().is_empty() {
+                    *min
+                } else {
+                    value.trim().parse::<f64>().map_err(|_| {
+                        DashboardError::binding(
+                            dashboard.source(),
+                            widget.source_path(),
+                            format!("progress value must be numeric, got {value:?}"),
+                        )
+                    })?
+                };
+                if !value.is_finite() {
+                    return Err(DashboardError::binding(
+                        dashboard.source(),
+                        widget.source_path(),
+                        format!("progress value must be finite, got {value}"),
+                    ));
+                }
+                paint_progress(
+                    pixmap,
+                    layout,
+                    ((value.clamp(*min, *max) - min) / (max - min)) as f32,
+                    *orientation,
+                    opacity,
+                    child_clip,
+                );
+            }
             _ => {}
         }
 
         for (child, child_layout) in widget.children().iter().zip(layout.children()) {
-            self.paint_node(pixmap, child, child_layout, child_clip, opacity)?;
+            self.paint_node(
+                pixmap,
+                dashboard,
+                child,
+                child_layout,
+                values,
+                PaintState {
+                    clip: child_clip,
+                    opacity,
+                },
+            )?;
         }
         Ok(())
+    }
+}
+
+#[derive(Clone, Copy)]
+struct PaintState {
+    clip: ClipRect,
+    opacity: f32,
+}
+
+fn paint_progress(
+    pixmap: &mut Pixmap,
+    layout: &LayoutNode,
+    progress: f32,
+    orientation: crate::widget::ProgressOrientation,
+    opacity: f32,
+    clip: ClipRect,
+) {
+    let color = with_opacity(layout.style().color, opacity);
+    let x = layout.content_x();
+    let y = layout.content_y();
+    let width = layout.content_width();
+    let height = layout.content_height();
+    match orientation {
+        crate::widget::ProgressOrientation::Horizontal => {
+            fill_rect(pixmap, x, y, width * progress, height, color, clip);
+        }
+        crate::widget::ProgressOrientation::Vertical => {
+            let fill_height = height * progress;
+            fill_rect(
+                pixmap,
+                x,
+                y + height - fill_height,
+                width,
+                fill_height,
+                color,
+                clip,
+            );
+        }
     }
 }
 

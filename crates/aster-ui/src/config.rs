@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: Copyright (c) 2026 Chunhou Wong
 
+use crate::binding::Binding;
 use crate::error::DashboardError;
 use crate::layout::LayoutTree;
 use crate::renderer::Renderer;
@@ -260,7 +261,12 @@ impl RawWidget {
                     ],
                 )?;
                 WidgetKind::Text {
-                    text: required_string(dashboard_path, &source_path, "text", self.text)?,
+                    text: parse_binding(
+                        dashboard_path,
+                        &source_path,
+                        "text",
+                        required_string(dashboard_path, &source_path, "text", self.text)?,
+                    )?,
                 }
             }
             RawWidgetType::Image => {
@@ -303,7 +309,12 @@ impl RawWidget {
                         ("source", self.source.is_some()),
                     ],
                 )?;
-                let value = required_string(dashboard_path, &source_path, "value", self.value)?;
+                let value = parse_binding(
+                    dashboard_path,
+                    &source_path,
+                    "value",
+                    required_string(dashboard_path, &source_path, "value", self.value)?,
+                )?;
                 let min = self.min.unwrap_or(0.0);
                 let max = self.max.unwrap_or(100.0);
                 if !min.is_finite() || !max.is_finite() || min >= max {
@@ -466,6 +477,21 @@ fn required_string(
             format!("widget requires non-empty {field}"),
         )),
     }
+}
+
+fn parse_binding(
+    dashboard_path: &Path,
+    widget_path: &str,
+    field: &str,
+    value: String,
+) -> Result<Binding, DashboardError> {
+    Binding::parse(&value).map_err(|error| {
+        widget_error(
+            dashboard_path,
+            widget_path,
+            format!("invalid {field} binding: {error}"),
+        )
+    })
 }
 
 fn resolve_existing_file(

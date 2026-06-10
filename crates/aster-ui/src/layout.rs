@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: Copyright (c) 2026 Chunhou Wong
 
+use crate::ValueMap;
 use crate::error::DashboardError;
 use crate::renderer::AssetCache;
 use crate::style::{
@@ -48,15 +49,26 @@ impl LayoutTree {
     }
 
     pub(crate) fn compute_with_assets(
+        dashboard_source: &std::path::Path,
         root: &Widget,
         stylesheet: &StyleSheet,
         width: u32,
         height: u32,
         assets: &mut AssetCache,
+        values: &ValueMap,
     ) -> Result<Self, DashboardError> {
         let mut taffy = TaffyTree::<MeasureContext>::new();
         let built = build_measured_node(
-            &mut taffy, root, stylesheet, None, None, true, width, height,
+            &mut taffy,
+            dashboard_source,
+            root,
+            stylesheet,
+            None,
+            None,
+            true,
+            width,
+            height,
+            values,
         )?;
         let mut measure_error = None;
         taffy
@@ -282,6 +294,7 @@ fn collect_layout(
 #[allow(clippy::too_many_arguments)]
 fn build_measured_node(
     taffy: &mut TaffyTree<MeasureContext>,
+    dashboard_source: &std::path::Path,
     widget: &Widget,
     stylesheet: &StyleSheet,
     parent_style: Option<&ComputedStyle>,
@@ -289,6 +302,7 @@ fn build_measured_node(
     is_root: bool,
     display_width: u32,
     display_height: u32,
+    values: &ValueMap,
 ) -> Result<BuiltNode, DashboardError> {
     let computed = stylesheet.compute(widget, parent_style);
     let is_stack = computed.display == Display::Stack;
@@ -298,6 +312,7 @@ fn build_measured_node(
         .map(|child| {
             build_measured_node(
                 taffy,
+                dashboard_source,
                 child,
                 stylesheet,
                 Some(&computed),
@@ -305,6 +320,7 @@ fn build_measured_node(
                 false,
                 display_width,
                 display_height,
+                values,
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -318,7 +334,9 @@ fn build_measured_node(
     );
     let context = match widget.kind() {
         WidgetKind::Text { text } => Some(MeasureContext::Text {
-            text: text.clone(),
+            text: text.resolve(values).map_err(|error| {
+                DashboardError::binding(dashboard_source, widget.source_path(), error.to_string())
+            })?,
             style: computed.clone(),
         }),
         WidgetKind::Image { source } => Some(MeasureContext::Image {
