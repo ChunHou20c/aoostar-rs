@@ -59,6 +59,24 @@ impl Dashboard {
     pub fn compute_layout(&self) -> Result<LayoutTree, DashboardError> {
         Renderer::new(self)?.compute_layout(self)
     }
+
+    pub fn asset_paths(&self) -> Vec<PathBuf> {
+        let mut paths = vec![self.source.clone(), self.options.stylesheet.clone()];
+        paths.extend(self.options.fonts.iter().cloned());
+        collect_image_paths(&self.root, &mut paths);
+        paths.sort();
+        paths.dedup();
+        paths
+    }
+}
+
+fn collect_image_paths(widget: &Widget, paths: &mut Vec<PathBuf>) {
+    if let WidgetKind::Image { source } = widget.kind() {
+        paths.push(source.clone());
+    }
+    for child in widget.children() {
+        collect_image_paths(child, paths);
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

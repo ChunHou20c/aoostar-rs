@@ -2,7 +2,6 @@
 // SPDX-FileCopyrightText: Copyright (c) 2025 Markus Zehnder
 
 use serialport::{ClearBuffer, DataBits, FlowControl, Parity, SerialPort, StopBits};
-use std::thread::sleep;
 use std::time::Duration;
 
 pub struct FakeSerialPort {
@@ -42,11 +41,6 @@ impl std::io::Read for FakeSerialPort {
 
 impl std::io::Write for FakeSerialPort {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        // just some approximation, additional overhead like flushing etc is not considered
-        let byte_rate =
-            self.baud_rate / (1 + u8::from(self.data_bits) + u8::from(self.stop_bits)) as u32;
-        let delay = Duration::from_micros((buf.len() * 1000 * 1000 / byte_rate as usize) as u64);
-        sleep(delay);
         Ok(buf.len())
     }
 

@@ -127,6 +127,11 @@ Sensor changes are debounced for 30 ms. Identical rendered frames are not saved
 or transmitted. Saved continuous frames use names such as
 `out/dashboard-0001.png`.
 
+Continuous mode also watches the dashboard TOML, stylesheet, configured fonts,
+and image assets. A valid edit is loaded atomically and rendered immediately.
+If an edit is invalid, `asterctl` logs the error once and keeps the last valid
+frame. Fixing the file resumes reload without restarting the process.
+
 ## Stylesheet Contract
 
 Stylesheets support these selectors:
