@@ -145,6 +145,15 @@ pub fn start_file_slurper<P: Into<PathBuf>>(
     Ok(())
 }
 
+pub fn read_sensor_values<P: AsRef<Path>>(
+    path: P,
+    sensor_filter: Option<&[Regex]>,
+) -> anyhow::Result<HashMap<String, String>> {
+    let mut values = HashMap::new();
+    read_path(path, &mut values, sensor_filter)?;
+    Ok(values)
+}
+
 /// Read a single key-value-based source file or all source file for a given directory path.
 ///
 /// # Arguments

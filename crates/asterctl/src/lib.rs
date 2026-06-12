@@ -5,6 +5,7 @@
 #![deny(unsafe_code)]
 
 pub mod cfg;
+pub mod dashboard;
 pub mod font;
 mod format_value;
 pub mod img;

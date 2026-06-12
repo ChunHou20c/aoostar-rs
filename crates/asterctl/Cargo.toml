@@ -11,6 +11,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+aster-ui = { path = "../aster-ui", version = "0.1.0" }
 asterctl-lcd = { path = "../asterctl-lcd", version = "0.2.0" }
 
 anyhow = "1.0.98"
@@ -30,3 +31,4 @@ regex = "1.11.2"
 
 [dev-dependencies]
 rstest = "0.26"
+tempfile = "3.21.0"

@@ -5,6 +5,7 @@
 #![deny(unsafe_code)]
 
 use asterctl::cfg::{MonitorConfig, Panel, load_custom_panel};
+use asterctl::dashboard::render_dashboard_once;
 use asterctl::render::PanelRenderer;
 use asterctl::sensors::{read_filter_file, read_key_value_file, start_file_slurper};
 use asterctl::{cfg, img};
@@ -54,6 +55,14 @@ struct Args {
     #[arg(short, long)]
     config: Option<PathBuf>,
 
+    /// Widget dashboard TOML configuration file.
+    #[arg(long, conflicts_with_all = ["config", "image", "on", "off"])]
+    dashboard: Option<PathBuf>,
+
+    /// Render one dashboard PNG and exit without opening a display.
+    #[arg(long, requires_all = ["dashboard", "save"])]
+    render_once: bool,
+
     /// Include one or more additional custom panels into the base configuration.
     ///
     /// Specify the path to the panel directory containing panel.json and fonts / img subdirectories.
@@ -88,7 +97,7 @@ struct Args {
     #[arg(short, long)]
     write_only: bool,
 
-    /// Test mode: save changed images in ./out folder.
+    /// Save rendered images in the ./out folder.
     #[arg(short, long)]
     save: bool,
 
@@ -101,6 +110,22 @@ fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let args = Args::parse();
+
+    if args.render_once {
+        let dashboard = args
+            .dashboard
+            .as_ref()
+            .expect("clap requires --dashboard with --render-once");
+        let output = render_dashboard_once(dashboard, &args.sensor_path, "out")?;
+        info!("Saved dashboard preview to {output:?}");
+        return Ok(());
+    }
+
+    if args.dashboard.is_some() {
+        return Err(anyhow!(
+            "continuous dashboard mode is not implemented yet; use --render-once --save"
+        ));
+    }
 
     // initialize display with given UART port parameter
     let mut builder = AooScreenBuilder::new();

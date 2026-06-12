@@ -179,6 +179,7 @@ version = "0.2.0"
 dependencies = [
  "ab_glyph",
  "anyhow",
+ "aster-ui",
  "asterctl-lcd",
  "chrono",
  "clap",
@@ -193,6 +194,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_repr",
+ "tempfile",
 ]
 
 [[package]]

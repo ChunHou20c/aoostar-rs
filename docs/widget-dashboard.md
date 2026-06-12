@@ -97,6 +97,22 @@ values use `min`; malformed present values return an error identifying the
 widget path. `background-color` paints the track and `color` paints the fill.
 Vertical progress fills from bottom to top.
 
+## One-Shot Preview
+
+`asterctl` can render a deterministic dashboard preview without opening a
+serial device:
+
+```shell
+asterctl \
+  --dashboard examples/dashboards/system-overview/dashboard.toml \
+  --sensor-path examples/dashboards/data/system-values.txt \
+  --render-once \
+  --save
+```
+
+This writes exactly one image to `out/dashboard.png` and exits. Continuous
+dashboard display mode is not implemented yet.
+
 ## Stylesheet Contract
 
 Stylesheets support these selectors:
