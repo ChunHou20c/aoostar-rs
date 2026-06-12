@@ -6,6 +6,7 @@ background = "#001c1c"
 fonts = [
     "../../../fonts/DejaVuSans.ttf",
     "../../../fonts/HarmonyOS_Sans_SC_Bold.ttf",
+    "../../../fonts/SymbolsNerdFontMono-Regular.ttf",
 ]
 
 [components.pill]
@@ -89,7 +90,7 @@ class = ["card-column"]
 [[root.children.children]]
 type = "component"
 component = "icon-card"
-params = { card-class = "memory-card", icon-class = "memory-icon", icon = "RAM", top-label-class = "empty-label", top-label = "-", top-value = "{{ memory_usage | number(0) }}%", bottom-label-class = "empty-label", bottom-label = "-", bottom-value = "{{ memory_Temperature | number(0) }}°C" }
+params = { card-class = "memory-card", icon-class = "memory-icon", icon = "󰍛", top-label-class = "empty-label", top-label = "-", top-value = "{{ memory_usage | number(0) }}%", bottom-label-class = "empty-label", bottom-label = "-", bottom-value = "{{ memory_Temperature | number(0) }}°C" }
 
 [[root.children.children]]
 type = "column"
@@ -112,9 +113,9 @@ class = ["card-column"]
 [[root.children.children]]
 type = "component"
 component = "icon-card"
-params = { card-class = "gpu-card", icon-class = "gpu-icon", icon = "GPU", top-label-class = "metric-name", top-label = "GPU:", top-value = "{{ gpu_core | number(0) }}%", bottom-label-class = "metric-name", bottom-label = "TEMP:", bottom-value = "{{ gpu_temperature | number(0) }}°C" }
+params = { card-class = "gpu-card", icon-class = "gpu-icon", icon = "", top-label-class = "metric-name", top-label = "GPU:", top-value = "{{ gpu_core | number(0) }}%", bottom-label-class = "metric-name", bottom-label = "TEMP:", bottom-value = "{{ gpu_temperature | number(0) }}°C" }
 
 [[root.children.children]]
 type = "component"
 component = "icon-card"
-params = { card-class = "network-card", icon-class = "network-icon", icon = "NET", top-label-class = "empty-label", top-label = "-", top-value = "{{ net_upload_speed }}{{ net_upload_speed#unit }}", bottom-label-class = "empty-label", bottom-label = "-", bottom-value = "{{ net_download_speed }}{{ net_download_speed#unit }}" }
+params = { card-class = "network-card", icon-class = "network-icon", icon = "", top-label-class = "empty-label", top-label = "-", top-value = "{{ net_upload_speed }}{{ net_upload_speed#unit }}", bottom-label-class = "empty-label", bottom-label = "-", bottom-value = "{{ net_download_speed }}{{ net_download_speed#unit }}" }

@@ -105,33 +105,23 @@
     width: 78px;
     flex-shrink: 0;
     text-align: center;
-    font-size: 24px;
-    font-weight: 700;
+    font-family: "Symbols Nerd Font Mono";
+    font-size: 64px;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .memory-icon {
-    height: 72px;
-    align-items: center;
-    justify-content: center;
-    border-width: 4px;
-    border-color: #ffffff;
-    border-radius: 36px;
+    font-size: 72px;
 }
 
 .gpu-icon {
-    width: 54px;
-    height: 54px;
-    align-items: center;
-    justify-content: center;
-    border-width: 3px;
-    border-color: #ffffff;
-    border-radius: 27px;
-    font-size: 14px;
+    font-size: 58px;
 }
 
 .network-icon {
     width: 78px;
-    font-size: 20px;
+    font-size: 70px;
 }
 
 .pill-column {
