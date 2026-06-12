@@ -12,12 +12,12 @@ class = ["brand"]
 [[components.brand.children]]
 type = "text"
 class = ["brand-title"]
-text = "AOOSTAR"
+text = "{{ @title }}"
 
 [[components.brand.children]]
 type = "text"
 class = ["brand-subtitle"]
-text = "Advanced widgets"
+text = "{{ @subtitle }}"
 
 [root]
 type = "row"
@@ -27,6 +27,7 @@ class = ["dashboard"]
 [[root.children]]
 type = "component"
 component = "brand"
+params = { title = "AOOSTAR", subtitle = "Advanced widgets" }
 
 [[root.children]]
 type = "circular-progress"

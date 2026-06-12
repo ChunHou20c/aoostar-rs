@@ -57,6 +57,154 @@ id = "second"
 }
 
 #[test]
+fn component_parameters_bind_each_instance_independently() {
+    let directory = tempdir().unwrap();
+    fs::write(
+        directory.path().join("dashboard.css"),
+        "progress { width: 20px; height: 10px; color: #ffffff; }\n",
+    )
+    .unwrap();
+    fs::write(
+        directory.path().join("dashboard.toml"),
+        r#"
+[dashboard]
+width = 40
+height = 10
+stylesheet = "dashboard.css"
+
+[components.meter]
+type = "progress"
+value = "{{ @value }}"
+
+[root]
+type = "row"
+
+[[root.children]]
+type = "component"
+component = "meter"
+params = { value = "{{ cpu }}" }
+
+[[root.children]]
+type = "component"
+component = "meter"
+params = { value = "{{ memory }}" }
+"#,
+    )
+    .unwrap();
+
+    let dashboard = Dashboard::load(directory.path().join("dashboard.toml")).unwrap();
+    let image = Renderer::new(&dashboard)
+        .unwrap()
+        .render_with_values(
+            &dashboard,
+            &ValueMap::from([
+                ("cpu".to_string(), "25".to_string()),
+                ("memory".to_string(), "75".to_string()),
+            ]),
+        )
+        .unwrap();
+
+    assert_eq!(image.get_pixel(4, 5).0, [255, 255, 255, 255]);
+    assert_eq!(image.get_pixel(6, 5).0, [0, 0, 0, 0]);
+    assert_eq!(image.get_pixel(34, 5).0, [255, 255, 255, 255]);
+    assert_eq!(image.get_pixel(36, 5).0, [0, 0, 0, 0]);
+}
+
+#[test]
+fn component_parameters_support_text_and_nested_forwarding() {
+    let directory = tempdir().unwrap();
+    fs::write(directory.path().join("dashboard.css"), "text {}\n").unwrap();
+    fs::write(
+        directory.path().join("dashboard.toml"),
+        r#"
+[dashboard]
+width = 80
+height = 20
+stylesheet = "dashboard.css"
+
+[components.label]
+type = "text"
+text = "{{ @prefix }}: {{ @value }}"
+
+[components.forwarder]
+type = "component"
+component = "label"
+params = { prefix = "{{ @title }}", value = "{{ @sensor }}" }
+
+[root]
+type = "component"
+component = "forwarder"
+params = { title = "CPU", sensor = "{{ cpu }}" }
+"#,
+    )
+    .unwrap();
+
+    let dashboard = Dashboard::load(directory.path().join("dashboard.toml")).unwrap();
+    let WidgetKind::Text { text } = dashboard.root().kind() else {
+        panic!("forwarded component should expand to text");
+    };
+    assert_eq!(
+        text.resolve(&ValueMap::from([("cpu".to_string(), "42".to_string())]))
+            .unwrap(),
+        "CPU: 42"
+    );
+}
+
+#[test]
+fn component_parameters_are_validated_strictly() {
+    let cases = [
+        (
+            "params = {}",
+            "missing parameter \"value\" for component \"meter\"",
+        ),
+        (
+            r#"params = { value = "50", extra = "unused" }"#,
+            "unknown parameter \"extra\" for component \"meter\"",
+        ),
+        (
+            r#"params = { value = "50" }"#,
+            "expected {{ @name }}, got {{ @value | number(0) }}",
+        ),
+    ];
+
+    for (params, expected) in cases {
+        let directory = tempdir().unwrap();
+        fs::write(directory.path().join("dashboard.css"), "progress {}\n").unwrap();
+        let placeholder = if expected.contains("expected") {
+            "{{ @value | number(0) }}"
+        } else {
+            "{{ @value }}"
+        };
+        fs::write(
+            directory.path().join("dashboard.toml"),
+            format!(
+                r#"
+[dashboard]
+width = 20
+height = 10
+stylesheet = "dashboard.css"
+
+[components.meter]
+type = "progress"
+value = "{placeholder}"
+
+[root]
+type = "component"
+component = "meter"
+{params}
+"#
+            ),
+        )
+        .unwrap();
+
+        let error = Dashboard::load(directory.path().join("dashboard.toml"))
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains(expected), "{error}");
+    }
+}
+
+#[test]
 fn reusable_component_cycles_are_rejected() {
     let directory = tempdir().unwrap();
     fs::write(directory.path().join("dashboard.css"), "row {}\n").unwrap();

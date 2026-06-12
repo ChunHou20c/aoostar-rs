@@ -258,6 +258,8 @@ struct RawWidget {
     #[serde(rename = "not-equals")]
     not_equals: Option<String>,
     component: Option<String>,
+    #[serde(default)]
+    params: HashMap<String, String>,
 }
 
 impl RawWidget {
@@ -312,6 +314,37 @@ impl RawWidget {
                 format!("unknown component {name:?}"),
             )
         })?;
+        let required_params =
+            template.parameter_references(dashboard_path, &format!("component {name:?}"))?;
+        for param in self.params.keys() {
+            if !is_identifier(param) {
+                return Err(widget_error(
+                    dashboard_path,
+                    &source_path,
+                    format!(
+                        "invalid component parameter {param:?}; use letters, digits, '_' or '-'"
+                    ),
+                ));
+            }
+            if !required_params.contains(param) {
+                return Err(widget_error(
+                    dashboard_path,
+                    &source_path,
+                    format!("unknown parameter {param:?} for component {name:?}"),
+                ));
+            }
+        }
+        if let Some(missing) = required_params
+            .iter()
+            .find(|param| !self.params.contains_key(*param))
+        {
+            return Err(widget_error(
+                dashboard_path,
+                &source_path,
+                format!("missing parameter {missing:?} for component {name:?}"),
+            ));
+        }
+        template.substitute_parameters(dashboard_path, &source_path, &self.params)?;
         template.id = self.id;
         template.classes.extend(self.classes);
         component_stack.push(name);
@@ -345,6 +378,24 @@ impl RawWidget {
                 components,
                 component_stack,
             );
+        }
+        if !self.params.is_empty() {
+            return Err(widget_error(
+                dashboard_path,
+                &source_path,
+                "field \"params\" is only valid for component widgets",
+            ));
+        }
+        if let Some(unresolved) = self
+            .parameter_references(dashboard_path, &source_path)?
+            .into_iter()
+            .next()
+        {
+            return Err(widget_error(
+                dashboard_path,
+                &source_path,
+                format!("unresolved component parameter {unresolved:?}"),
+            ));
         }
         self.validate_identity(dashboard_path, &source_path, ids)?;
 
@@ -702,6 +753,88 @@ impl RawWidget {
         Ok(Widget::new(source_path, self.id, self.classes, kind))
     }
 
+    fn parameter_references(
+        &self,
+        dashboard_path: &Path,
+        source_path: &str,
+    ) -> Result<HashSet<String>, DashboardError> {
+        let mut references = HashSet::new();
+        self.visit_parameter_strings(&mut |field, value| {
+            collect_parameter_references(value, &mut references).map_err(|message| {
+                widget_error(
+                    dashboard_path,
+                    source_path,
+                    format!("invalid parameter placeholder in {field}: {message}"),
+                )
+            })
+        })?;
+        Ok(references)
+    }
+
+    fn substitute_parameters(
+        &mut self,
+        dashboard_path: &Path,
+        source_path: &str,
+        params: &HashMap<String, String>,
+    ) -> Result<(), DashboardError> {
+        self.visit_parameter_strings_mut(&mut |field, value| {
+            *value = substitute_parameter_references(value, params).map_err(|message| {
+                widget_error(
+                    dashboard_path,
+                    source_path,
+                    format!("failed to substitute {field}: {message}"),
+                )
+            })?;
+            Ok(())
+        })
+    }
+
+    fn visit_parameter_strings(
+        &self,
+        visitor: &mut impl FnMut(&str, &str) -> Result<(), DashboardError>,
+    ) -> Result<(), DashboardError> {
+        for (field, value) in [
+            ("text", self.text.as_deref()),
+            ("value", self.value.as_deref()),
+            ("equals", self.equals.as_deref()),
+            ("not-equals", self.not_equals.as_deref()),
+        ] {
+            if let Some(value) = value {
+                visitor(field, value)?;
+            }
+        }
+        for value in self.params.values() {
+            visitor("params", value)?;
+        }
+        for child in &self.children {
+            child.visit_parameter_strings(visitor)?;
+        }
+        Ok(())
+    }
+
+    fn visit_parameter_strings_mut(
+        &mut self,
+        visitor: &mut impl FnMut(&str, &mut String) -> Result<(), DashboardError>,
+    ) -> Result<(), DashboardError> {
+        for (field, value) in [
+            ("text", self.text.as_mut()),
+            ("value", self.value.as_mut()),
+            ("equals", self.equals.as_mut()),
+            ("not-equals", self.not_equals.as_mut()),
+        ] {
+            if let Some(value) = value {
+                visitor(field, value)?;
+            }
+        }
+        for value in self.params.values_mut() {
+            visitor("params", value)?;
+        }
+        for child in &mut self.children {
+            child.visit_parameter_strings_mut(visitor)?;
+        }
+        Ok(())
+    }
+
     fn validate_identity(
         &self,
         dashboard_path: &Path,
@@ -823,6 +956,74 @@ fn normalize_children(
             )
         })
         .collect()
+}
+
+fn collect_parameter_references(
+    input: &str,
+    references: &mut HashSet<String>,
+) -> Result<(), String> {
+    visit_binding_expressions(input, |expression| {
+        if let Some(name) = expression.strip_prefix('@') {
+            let name = name.trim();
+            if !is_identifier(name) {
+                return Err(format!(
+                    "expected {{{{ @name }}}}, got {{{{ {expression} }}}}"
+                ));
+            }
+            references.insert(name.to_string());
+        }
+        Ok(())
+    })
+}
+
+fn substitute_parameter_references(
+    input: &str,
+    params: &HashMap<String, String>,
+) -> Result<String, String> {
+    let mut output = String::with_capacity(input.len());
+    let mut remaining = input;
+    while let Some(open) = remaining.find("{{") {
+        output.push_str(&remaining[..open]);
+        let expression_start = &remaining[open + 2..];
+        let Some(close) = expression_start.find("}}") else {
+            output.push_str(&remaining[open..]);
+            return Ok(output);
+        };
+        let expression = expression_start[..close].trim();
+        if let Some(name) = expression.strip_prefix('@') {
+            let name = name.trim();
+            if !is_identifier(name) {
+                return Err(format!(
+                    "expected {{{{ @name }}}}, got {{{{ {expression} }}}}"
+                ));
+            }
+            let value = params
+                .get(name)
+                .ok_or_else(|| format!("missing parameter {name:?}"))?;
+            output.push_str(value);
+        } else {
+            output.push_str(&remaining[open..open + 2 + close + 2]);
+        }
+        remaining = &expression_start[close + 2..];
+    }
+    output.push_str(remaining);
+    Ok(output)
+}
+
+fn visit_binding_expressions(
+    input: &str,
+    mut visitor: impl FnMut(&str) -> Result<(), String>,
+) -> Result<(), String> {
+    let mut remaining = input;
+    while let Some(open) = remaining.find("{{") {
+        let expression_start = &remaining[open + 2..];
+        let Some(close) = expression_start.find("}}") else {
+            return Ok(());
+        };
+        visitor(expression_start[..close].trim())?;
+        remaining = &expression_start[close + 2..];
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]

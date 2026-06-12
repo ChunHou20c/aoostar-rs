@@ -67,7 +67,7 @@ The configuration model currently accepts:
 | `graph` | `value` | `id`, `class`, `min`, `max`, `line-width`, `fill` | no |
 | `gauge` | `value` | `id`, `class`, `min`, `max`, `start-angle`, `sweep-angle`, `thickness`, `needle-width` | no |
 | `conditional` | `value` | `id`, `class`, `equals`, `not-equals` | yes |
-| `component` | `component` | `id`, `class` | no |
+| `component` | `component` | `id`, `class`, `params` | no |
 
 `row` and `column` normalize to a common flex widget with different
 directions. Widget IDs must be unique. IDs and classes may contain ASCII
@@ -181,7 +181,11 @@ class = ["metric-card"]
 
 [[components.metric-card.children]]
 type = "text"
-text = "AOOSTAR"
+text = "{{ @label }}"
+
+[[components.metric-card.children]]
+type = "progress"
+value = "{{ @value }}"
 
 [root]
 type = "row"
@@ -191,12 +195,37 @@ type = "component"
 component = "metric-card"
 id = "left-card"
 class = ["highlighted"]
+params = { label = "CPU", value = "{{ cpu_percent }}" }
 ```
 
 Templates cannot define IDs because using a template more than once would
 duplicate them. Component references may be nested, but cycles are rejected.
-Templates currently use the same global sensor bindings as the rest of the
-dashboard; per-instance component parameters are not supported.
+
+Template parameters use `{{ @name }}` placeholders in `text`, `value`,
+`equals`, `not-equals`, and nested component `params` values. Every inferred
+parameter must be supplied exactly once by the instance; missing, unknown, and
+malformed parameters are rejected while loading the dashboard. Parameter
+values may be literals or normal sensor bindings:
+
+```toml
+params = {
+    label = "CPU",
+    value = "{{ cpu_percent | number(0) }}"
+}
+```
+
+Nested components can forward parameters:
+
+```toml
+[components.outer]
+type = "component"
+component = "metric-card"
+params = { label = "{{ @title }}", value = "{{ @sensor }}" }
+```
+
+Substitution happens before ordinary bindings are parsed. Filters belong in
+the instance value, not on the parameter placeholder itself, so
+`{{ @value | number(0) }}` is invalid.
 
 ## One-Shot Preview
 
