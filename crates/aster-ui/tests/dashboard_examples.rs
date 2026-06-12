@@ -115,6 +115,6 @@ fn loads_advanced_components_example() {
             &load_values("examples/dashboards/advanced-components/values.txt"),
         )
         .unwrap();
-    assert_eq!(image.dimensions(), (480, 120));
+    assert_eq!(image.dimensions(), (960, 376));
     assert!(image.pixels().any(|pixel| pixel[3] > 0));
 }

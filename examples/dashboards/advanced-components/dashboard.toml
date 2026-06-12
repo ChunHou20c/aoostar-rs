@@ -1,6 +1,6 @@
 [dashboard]
-width = 480
-height = 120
+width = 960
+height = 376
 stylesheet = "dashboard.css"
 background = "#101318"
 fonts = ["../../../fonts/DejaVuSans.ttf"]
