@@ -140,36 +140,75 @@ impl Renderer {
                 max,
                 orientation,
             } => {
-                let value = value.resolve(values).map_err(|error| {
-                    DashboardError::binding(
-                        dashboard.source(),
-                        widget.source_path(),
-                        error.to_string(),
-                    )
-                })?;
-                let value = if value.trim().is_empty() {
-                    *min
-                } else {
-                    value.trim().parse::<f64>().map_err(|_| {
-                        DashboardError::binding(
-                            dashboard.source(),
-                            widget.source_path(),
-                            format!("progress value must be numeric, got {value:?}"),
-                        )
-                    })?
-                };
-                if !value.is_finite() {
-                    return Err(DashboardError::binding(
-                        dashboard.source(),
-                        widget.source_path(),
-                        format!("progress value must be finite, got {value}"),
-                    ));
-                }
+                let value = resolve_number(dashboard, widget, value, values, *min, "progress")?;
                 paint_progress(
                     pixmap,
                     layout,
                     ((value.clamp(*min, *max) - min) / (max - min)) as f32,
                     *orientation,
+                    opacity,
+                    child_clip,
+                );
+            }
+            WidgetKind::CircularProgress {
+                value,
+                min,
+                max,
+                start_angle,
+                sweep_angle,
+                thickness,
+            } => {
+                let value =
+                    resolve_number(dashboard, widget, value, values, *min, "circular-progress")?;
+                paint_circular_progress(
+                    pixmap,
+                    layout,
+                    ((value.clamp(*min, *max) - min) / (max - min)) as f32,
+                    *start_angle,
+                    *sweep_angle,
+                    *thickness,
+                    opacity,
+                    child_clip,
+                );
+            }
+            WidgetKind::Graph {
+                values: binding,
+                min,
+                max,
+                line_width,
+                fill,
+            } => {
+                let samples = resolve_samples(dashboard, widget, binding, values)?;
+                paint_graph(
+                    pixmap,
+                    layout,
+                    &samples,
+                    *min,
+                    *max,
+                    *line_width,
+                    *fill,
+                    opacity,
+                    child_clip,
+                );
+            }
+            WidgetKind::Gauge {
+                value,
+                min,
+                max,
+                start_angle,
+                sweep_angle,
+                thickness,
+                needle_width,
+            } => {
+                let value = resolve_number(dashboard, widget, value, values, *min, "gauge")?;
+                paint_gauge(
+                    pixmap,
+                    layout,
+                    ((value.clamp(*min, *max) - min) / (max - min)) as f32,
+                    *start_angle,
+                    *sweep_angle,
+                    *thickness,
+                    *needle_width,
                     opacity,
                     child_clip,
                 );
@@ -192,6 +231,72 @@ impl Renderer {
         }
         Ok(())
     }
+}
+
+fn resolve_number(
+    dashboard: &Dashboard,
+    widget: &Widget,
+    binding: &crate::Binding,
+    values: &ValueMap,
+    default: f64,
+    widget_type: &str,
+) -> Result<f64, DashboardError> {
+    let value = binding.resolve(values).map_err(|error| {
+        DashboardError::binding(dashboard.source(), widget.source_path(), error.to_string())
+    })?;
+    let value = if value.trim().is_empty() {
+        default
+    } else {
+        value.trim().parse::<f64>().map_err(|_| {
+            DashboardError::binding(
+                dashboard.source(),
+                widget.source_path(),
+                format!("{widget_type} value must be numeric, got {value:?}"),
+            )
+        })?
+    };
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(DashboardError::binding(
+            dashboard.source(),
+            widget.source_path(),
+            format!("{widget_type} value must be finite, got {value}"),
+        ))
+    }
+}
+
+fn resolve_samples(
+    dashboard: &Dashboard,
+    widget: &Widget,
+    binding: &crate::Binding,
+    values: &ValueMap,
+) -> Result<Vec<f64>, DashboardError> {
+    let resolved = binding.resolve(values).map_err(|error| {
+        DashboardError::binding(dashboard.source(), widget.source_path(), error.to_string())
+    })?;
+    resolved
+        .split(|character: char| character == ',' || character == ';' || character.is_whitespace())
+        .filter(|sample| !sample.is_empty())
+        .map(|sample| {
+            let value = sample.parse::<f64>().map_err(|_| {
+                DashboardError::binding(
+                    dashboard.source(),
+                    widget.source_path(),
+                    format!("graph samples must be numeric, got {sample:?}"),
+                )
+            })?;
+            if value.is_finite() {
+                Ok(value)
+            } else {
+                Err(DashboardError::binding(
+                    dashboard.source(),
+                    widget.source_path(),
+                    format!("graph samples must be finite, got {sample:?}"),
+                ))
+            }
+        })
+        .collect()
 }
 
 #[derive(Clone, Copy)]
@@ -230,6 +335,214 @@ fn paint_progress(
             );
         }
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn paint_circular_progress(
+    pixmap: &mut Pixmap,
+    layout: &LayoutNode,
+    progress: f32,
+    start_angle: f32,
+    sweep_angle: f32,
+    thickness: f32,
+    opacity: f32,
+    clip: ClipRect,
+) {
+    let Some((center_x, center_y, radius)) = arc_geometry(layout, thickness) else {
+        return;
+    };
+    if let Some(track) = arc_path(center_x, center_y, radius, start_angle, sweep_angle) {
+        stroke_path(
+            pixmap,
+            &track,
+            with_opacity(layout.style().border_color, opacity),
+            thickness,
+            clip,
+        );
+    }
+    if progress > 0.0
+        && let Some(active) = arc_path(
+            center_x,
+            center_y,
+            radius,
+            start_angle,
+            sweep_angle * progress,
+        )
+    {
+        stroke_path(
+            pixmap,
+            &active,
+            with_opacity(layout.style().color, opacity),
+            thickness,
+            clip,
+        );
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn paint_gauge(
+    pixmap: &mut Pixmap,
+    layout: &LayoutNode,
+    progress: f32,
+    start_angle: f32,
+    sweep_angle: f32,
+    thickness: f32,
+    needle_width: f32,
+    opacity: f32,
+    clip: ClipRect,
+) {
+    paint_circular_progress(
+        pixmap,
+        layout,
+        progress,
+        start_angle,
+        sweep_angle,
+        thickness,
+        opacity,
+        clip,
+    );
+    let Some((center_x, center_y, radius)) = arc_geometry(layout, thickness) else {
+        return;
+    };
+    let angle = (start_angle + sweep_angle * progress).to_radians();
+    let mut needle = PathBuilder::new();
+    needle.move_to(center_x, center_y);
+    needle.line_to(
+        center_x + angle.cos() * radius,
+        center_y + angle.sin() * radius,
+    );
+    if let Some(needle) = needle.finish() {
+        stroke_path(
+            pixmap,
+            &needle,
+            with_opacity(layout.style().color, opacity),
+            needle_width,
+            clip,
+        );
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn paint_graph(
+    pixmap: &mut Pixmap,
+    layout: &LayoutNode,
+    samples: &[f64],
+    configured_min: Option<f64>,
+    configured_max: Option<f64>,
+    line_width: f32,
+    fill: bool,
+    opacity: f32,
+    clip: ClipRect,
+) {
+    if samples.is_empty() || layout.content_width() <= 0.0 || layout.content_height() <= 0.0 {
+        return;
+    }
+    let sample_min = samples.iter().copied().fold(f64::INFINITY, f64::min);
+    let sample_max = samples.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let mut min = configured_min.unwrap_or(sample_min);
+    let mut max = configured_max.unwrap_or(sample_max);
+    if min >= max {
+        match (configured_min, configured_max) {
+            (Some(_), None) => max = min + 1.0,
+            (None, Some(_)) => min = max - 1.0,
+            _ => {
+                let center = (min + max) / 2.0;
+                min = center - 0.5;
+                max = center + 0.5;
+            }
+        }
+    }
+    let x = layout.content_x();
+    let y = layout.content_y();
+    let width = layout.content_width();
+    let height = layout.content_height();
+    let point = |index: usize, value: f64| {
+        let x = if samples.len() == 1 {
+            x + width / 2.0
+        } else {
+            x + width * index as f32 / (samples.len() - 1) as f32
+        };
+        let normalized = ((value.clamp(min, max) - min) / (max - min)) as f32;
+        (x, y + height * (1.0 - normalized))
+    };
+    let points = samples
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(index, value)| point(index, value))
+        .collect::<Vec<_>>();
+    let color = with_opacity(layout.style().color, opacity);
+
+    if points.len() == 1 {
+        let (point_x, point_y) = points[0];
+        fill_rect(
+            pixmap,
+            point_x - line_width / 2.0,
+            point_y - line_width / 2.0,
+            line_width,
+            line_width,
+            color,
+            clip,
+        );
+        return;
+    }
+
+    if fill {
+        let mut area = PathBuilder::new();
+        area.move_to(points[0].0, y + height);
+        for &(point_x, point_y) in &points {
+            area.line_to(point_x, point_y);
+        }
+        area.line_to(points[points.len() - 1].0, y + height);
+        area.close();
+        if let Some(area) = area.finish() {
+            let mut fill_color = color;
+            fill_color.alpha /= 4;
+            fill_path(pixmap, &area, fill_color, clip);
+        }
+    }
+
+    let mut line = PathBuilder::new();
+    line.move_to(points[0].0, points[0].1);
+    for &(point_x, point_y) in &points[1..] {
+        line.line_to(point_x, point_y);
+    }
+    if let Some(line) = line.finish() {
+        stroke_path(pixmap, &line, color, line_width, clip);
+    }
+}
+
+fn arc_geometry(layout: &LayoutNode, thickness: f32) -> Option<(f32, f32, f32)> {
+    let radius = (layout.content_width().min(layout.content_height()) - thickness) / 2.0;
+    (radius > 0.0).then(|| {
+        (
+            layout.content_x() + layout.content_width() / 2.0,
+            layout.content_y() + layout.content_height() / 2.0,
+            radius,
+        )
+    })
+}
+
+fn arc_path(
+    center_x: f32,
+    center_y: f32,
+    radius: f32,
+    start_angle: f32,
+    sweep_angle: f32,
+) -> Option<SkiaPath> {
+    let segments = ((sweep_angle.abs() / 4.0).ceil() as usize).max(1);
+    let mut path = PathBuilder::new();
+    for index in 0..=segments {
+        let angle = (start_angle + sweep_angle * index as f32 / segments as f32).to_radians();
+        let x = center_x + angle.cos() * radius;
+        let y = center_y + angle.sin() * radius;
+        if index == 0 {
+            path.move_to(x, y);
+        } else {
+            path.line_to(x, y);
+        }
+    }
+    path.finish()
 }
 
 pub(crate) struct AssetCache {

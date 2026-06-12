@@ -304,26 +304,41 @@ fn build_measured_node(
     display_height: u32,
     values: &ValueMap,
 ) -> Result<BuiltNode, DashboardError> {
-    let computed = stylesheet.compute(widget, parent_style);
+    let mut computed = stylesheet.compute(widget, parent_style);
+    let condition_is_visible = match widget.kind() {
+        WidgetKind::Conditional { condition, .. } => {
+            condition.evaluate(values).map_err(|error| {
+                DashboardError::binding(dashboard_source, widget.source_path(), error.to_string())
+            })?
+        }
+        _ => true,
+    };
+    if !condition_is_visible {
+        computed.display = Display::None;
+    }
     let is_stack = computed.display == Display::Stack;
-    let children = widget
-        .children()
-        .iter()
-        .map(|child| {
-            build_measured_node(
-                taffy,
-                dashboard_source,
-                child,
-                stylesheet,
-                Some(&computed),
-                is_stack.then_some(computed.padding),
-                false,
-                display_width,
-                display_height,
-                values,
-            )
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    let children = if condition_is_visible {
+        widget
+            .children()
+            .iter()
+            .map(|child| {
+                build_measured_node(
+                    taffy,
+                    dashboard_source,
+                    child,
+                    stylesheet,
+                    Some(&computed),
+                    is_stack.then_some(computed.padding),
+                    false,
+                    display_width,
+                    display_height,
+                    values,
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?
+    } else {
+        Vec::new()
+    };
     let child_ids: Vec<_> = children.iter().map(|child| child.node).collect();
     let style = to_taffy_style(
         &computed,

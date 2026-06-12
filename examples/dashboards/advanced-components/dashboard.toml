@@ -1,0 +1,63 @@
+[dashboard]
+width = 480
+height = 120
+stylesheet = "dashboard.css"
+background = "#101318"
+fonts = ["../../../fonts/DejaVuSans.ttf"]
+
+[components.brand]
+type = "column"
+class = ["brand"]
+
+[[components.brand.children]]
+type = "text"
+class = ["brand-title"]
+text = "AOOSTAR"
+
+[[components.brand.children]]
+type = "text"
+class = ["brand-subtitle"]
+text = "Advanced widgets"
+
+[root]
+type = "row"
+id = "advanced-components"
+class = ["dashboard"]
+
+[[root.children]]
+type = "component"
+component = "brand"
+
+[[root.children]]
+type = "circular-progress"
+class = ["indicator", "cpu"]
+value = "{{ cpu_percent }}"
+thickness = 8
+
+[[root.children]]
+type = "graph"
+class = ["indicator", "history"]
+value = "{{ cpu_history }}"
+min = 0
+max = 100
+line-width = 3
+fill = true
+
+[[root.children]]
+type = "gauge"
+class = ["indicator", "temperature"]
+value = "{{ cpu_temperature }}"
+min = 20
+max = 100
+thickness = 7
+needle-width = 3
+
+[[root.children]]
+type = "conditional"
+class = ["warning"]
+value = "{{ disk_state }}"
+not-equals = "healthy"
+
+[[root.children.children]]
+type = "text"
+text = "DISK"

@@ -1,0 +1,52 @@
+.dashboard {
+    padding: 14px;
+    gap: 14px;
+    align-items: center;
+    font-family: "DejaVu Sans";
+}
+
+.brand {
+    width: 100px;
+    gap: 4px;
+    justify-content: center;
+}
+
+.brand-title {
+    color: #f2f5fa;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.brand-subtitle {
+    color: #9eabbf;
+    font-size: 11px;
+}
+
+.indicator {
+    width: 82px;
+    height: 82px;
+    flex-shrink: 0;
+    color: #6dd5e7;
+    border-color: #293341;
+}
+
+.history {
+    width: 110px;
+    color: #9be564;
+}
+
+.temperature {
+    color: #ff896d;
+}
+
+.warning {
+    width: 48px;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    color: #101318;
+    background-color: #ffcc66;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+}

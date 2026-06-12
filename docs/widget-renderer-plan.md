@@ -516,7 +516,7 @@ Completion criteria:
 
 ### Phase 6: Advanced Display Widgets
 
-Implement only after profiling and use-case validation:
+Implemented:
 
 - `circular-progress`;
 - bounded time-series `graph`;

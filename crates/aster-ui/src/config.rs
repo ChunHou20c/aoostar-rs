@@ -6,9 +6,11 @@ use crate::error::DashboardError;
 use crate::layout::LayoutTree;
 use crate::renderer::Renderer;
 use crate::style::StyleSheet;
-use crate::widget::{FlexDirection, ProgressOrientation, Widget, WidgetKind};
+use crate::widget::{
+    Condition, ConditionComparison, FlexDirection, ProgressOrientation, Widget, WidgetKind,
+};
 use serde::Deserialize;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -114,6 +116,8 @@ impl DashboardOptions {
 #[serde(deny_unknown_fields)]
 struct RawDashboard {
     dashboard: RawDashboardOptions,
+    #[serde(default)]
+    components: HashMap<String, RawWidget>,
     root: RawWidget,
 }
 
@@ -122,10 +126,31 @@ impl RawDashboard {
         let base_dir = source.parent().unwrap_or_else(|| Path::new("."));
         let options = self.dashboard.normalize(&source, base_dir)?;
         let stylesheet = StyleSheet::load(options.stylesheet())?;
+        for (name, component) in &self.components {
+            if !is_identifier(name) {
+                return Err(DashboardError::validation(
+                    &source,
+                    format!("invalid component name {name:?}; use letters, digits, '_' or '-'"),
+                ));
+            }
+            if component.contains_id() {
+                return Err(DashboardError::validation(
+                    &source,
+                    format!(
+                        "component {name:?} contains an id; reusable component templates cannot define ids"
+                    ),
+                ));
+            }
+        }
         let mut ids = HashSet::new();
-        let root = self
-            .root
-            .normalize(&source, base_dir, "root".to_string(), &mut ids)?;
+        let root = self.root.normalize(
+            &source,
+            base_dir,
+            "root".to_string(),
+            &mut ids,
+            &self.components,
+            &mut Vec::new(),
+        )?;
 
         Ok(Dashboard {
             source,
@@ -196,9 +221,14 @@ enum RawWidgetType {
     Image,
     Spacer,
     Progress,
+    CircularProgress,
+    Graph,
+    Gauge,
+    Conditional,
+    Component,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RawWidget {
     #[serde(rename = "type")]
@@ -214,16 +244,108 @@ struct RawWidget {
     min: Option<f64>,
     max: Option<f64>,
     orientation: Option<RawProgressOrientation>,
+    #[serde(rename = "start-angle")]
+    start_angle: Option<f32>,
+    #[serde(rename = "sweep-angle")]
+    sweep_angle: Option<f32>,
+    thickness: Option<f32>,
+    #[serde(rename = "needle-width")]
+    needle_width: Option<f32>,
+    #[serde(rename = "line-width")]
+    line_width: Option<f32>,
+    fill: Option<bool>,
+    equals: Option<String>,
+    #[serde(rename = "not-equals")]
+    not_equals: Option<String>,
+    component: Option<String>,
 }
 
 impl RawWidget {
+    fn contains_id(&self) -> bool {
+        self.id.is_some() || self.children.iter().any(Self::contains_id)
+    }
+
+    fn expand_component(
+        self,
+        dashboard_path: &Path,
+        base_dir: &Path,
+        source_path: String,
+        ids: &mut HashSet<String>,
+        components: &HashMap<String, RawWidget>,
+        component_stack: &mut Vec<String>,
+    ) -> Result<Widget, DashboardError> {
+        self.reject_children(dashboard_path, &source_path)?;
+        self.reject_fields(
+            dashboard_path,
+            &source_path,
+            [
+                ("text", self.text.is_some()),
+                ("source", self.source.is_some()),
+                ("value", self.value.is_some()),
+                ("min", self.min.is_some()),
+                ("max", self.max.is_some()),
+                ("orientation", self.orientation.is_some()),
+                ("start-angle", self.start_angle.is_some()),
+                ("sweep-angle", self.sweep_angle.is_some()),
+                ("thickness", self.thickness.is_some()),
+                ("needle-width", self.needle_width.is_some()),
+                ("line-width", self.line_width.is_some()),
+                ("fill", self.fill.is_some()),
+                ("equals", self.equals.is_some()),
+                ("not-equals", self.not_equals.is_some()),
+            ],
+        )?;
+        let name = required_string(dashboard_path, &source_path, "component", self.component)?;
+        if component_stack.contains(&name) {
+            let mut cycle = component_stack.clone();
+            cycle.push(name);
+            return Err(widget_error(
+                dashboard_path,
+                &source_path,
+                format!("component cycle detected: {}", cycle.join(" -> ")),
+            ));
+        }
+        let mut template = components.get(&name).cloned().ok_or_else(|| {
+            widget_error(
+                dashboard_path,
+                &source_path,
+                format!("unknown component {name:?}"),
+            )
+        })?;
+        template.id = self.id;
+        template.classes.extend(self.classes);
+        component_stack.push(name);
+        let result = template.normalize(
+            dashboard_path,
+            base_dir,
+            source_path,
+            ids,
+            components,
+            component_stack,
+        );
+        component_stack.pop();
+        result
+    }
+
     fn normalize(
         self,
         dashboard_path: &Path,
         base_dir: &Path,
         source_path: String,
         ids: &mut HashSet<String>,
+        components: &HashMap<String, RawWidget>,
+        component_stack: &mut Vec<String>,
     ) -> Result<Widget, DashboardError> {
+        if matches!(self.kind, RawWidgetType::Component) {
+            return self.expand_component(
+                dashboard_path,
+                base_dir,
+                source_path,
+                ids,
+                components,
+                component_stack,
+            );
+        }
         self.validate_identity(dashboard_path, &source_path, ids)?;
 
         let kind = match self.kind {
@@ -237,6 +359,8 @@ impl RawWidget {
                         base_dir,
                         &source_path,
                         ids,
+                        components,
+                        component_stack,
                     )?,
                 }
             }
@@ -250,6 +374,8 @@ impl RawWidget {
                         base_dir,
                         &source_path,
                         ids,
+                        components,
+                        component_stack,
                     )?,
                 }
             }
@@ -262,6 +388,8 @@ impl RawWidget {
                         base_dir,
                         &source_path,
                         ids,
+                        components,
+                        component_stack,
                     )?,
                 }
             }
@@ -276,6 +404,15 @@ impl RawWidget {
                         ("min", self.min.is_some()),
                         ("max", self.max.is_some()),
                         ("orientation", self.orientation.is_some()),
+                        ("start-angle", self.start_angle.is_some()),
+                        ("sweep-angle", self.sweep_angle.is_some()),
+                        ("thickness", self.thickness.is_some()),
+                        ("needle-width", self.needle_width.is_some()),
+                        ("line-width", self.line_width.is_some()),
+                        ("fill", self.fill.is_some()),
+                        ("equals", self.equals.is_some()),
+                        ("not-equals", self.not_equals.is_some()),
+                        ("component", self.component.is_some()),
                     ],
                 )?;
                 WidgetKind::Text {
@@ -298,6 +435,15 @@ impl RawWidget {
                         ("min", self.min.is_some()),
                         ("max", self.max.is_some()),
                         ("orientation", self.orientation.is_some()),
+                        ("start-angle", self.start_angle.is_some()),
+                        ("sweep-angle", self.sweep_angle.is_some()),
+                        ("thickness", self.thickness.is_some()),
+                        ("needle-width", self.needle_width.is_some()),
+                        ("line-width", self.line_width.is_some()),
+                        ("fill", self.fill.is_some()),
+                        ("equals", self.equals.is_some()),
+                        ("not-equals", self.not_equals.is_some()),
+                        ("component", self.component.is_some()),
                     ],
                 )?;
                 let configured_source = self.source.ok_or_else(|| {
@@ -325,6 +471,15 @@ impl RawWidget {
                     [
                         ("text", self.text.is_some()),
                         ("source", self.source.is_some()),
+                        ("start-angle", self.start_angle.is_some()),
+                        ("sweep-angle", self.sweep_angle.is_some()),
+                        ("thickness", self.thickness.is_some()),
+                        ("needle-width", self.needle_width.is_some()),
+                        ("line-width", self.line_width.is_some()),
+                        ("fill", self.fill.is_some()),
+                        ("equals", self.equals.is_some()),
+                        ("not-equals", self.not_equals.is_some()),
+                        ("component", self.component.is_some()),
                     ],
                 )?;
                 let value = parse_binding(
@@ -348,6 +503,199 @@ impl RawWidget {
                     max,
                     orientation: self.orientation.unwrap_or_default().into(),
                 }
+            }
+            RawWidgetType::CircularProgress => {
+                self.reject_children(dashboard_path, &source_path)?;
+                self.reject_fields(
+                    dashboard_path,
+                    &source_path,
+                    [
+                        ("text", self.text.is_some()),
+                        ("source", self.source.is_some()),
+                        ("orientation", self.orientation.is_some()),
+                        ("needle-width", self.needle_width.is_some()),
+                        ("line-width", self.line_width.is_some()),
+                        ("fill", self.fill.is_some()),
+                        ("equals", self.equals.is_some()),
+                        ("not-equals", self.not_equals.is_some()),
+                        ("component", self.component.is_some()),
+                    ],
+                )?;
+                let value = parse_binding(
+                    dashboard_path,
+                    &source_path,
+                    "value",
+                    required_string(dashboard_path, &source_path, "value", self.value)?,
+                )?;
+                let (min, max) = validate_range(
+                    dashboard_path,
+                    &source_path,
+                    "circular-progress",
+                    self.min.unwrap_or(0.0),
+                    self.max.unwrap_or(100.0),
+                )?;
+                let (start_angle, sweep_angle, thickness) = validate_arc(
+                    dashboard_path,
+                    &source_path,
+                    self.start_angle.unwrap_or(-90.0),
+                    self.sweep_angle.unwrap_or(360.0),
+                    self.thickness.unwrap_or(8.0),
+                )?;
+                WidgetKind::CircularProgress {
+                    value,
+                    min,
+                    max,
+                    start_angle,
+                    sweep_angle,
+                    thickness,
+                }
+            }
+            RawWidgetType::Graph => {
+                self.reject_children(dashboard_path, &source_path)?;
+                self.reject_fields(
+                    dashboard_path,
+                    &source_path,
+                    [
+                        ("text", self.text.is_some()),
+                        ("source", self.source.is_some()),
+                        ("orientation", self.orientation.is_some()),
+                        ("start-angle", self.start_angle.is_some()),
+                        ("sweep-angle", self.sweep_angle.is_some()),
+                        ("thickness", self.thickness.is_some()),
+                        ("needle-width", self.needle_width.is_some()),
+                        ("equals", self.equals.is_some()),
+                        ("not-equals", self.not_equals.is_some()),
+                        ("component", self.component.is_some()),
+                    ],
+                )?;
+                if self.min.is_some_and(|value| !value.is_finite())
+                    || self.max.is_some_and(|value| !value.is_finite())
+                    || matches!((self.min, self.max), (Some(min), Some(max)) if min >= max)
+                {
+                    return Err(widget_error(
+                        dashboard_path,
+                        &source_path,
+                        "graph min and max must be finite and min < max",
+                    ));
+                }
+                let line_width = self.line_width.unwrap_or(2.0);
+                validate_positive(dashboard_path, &source_path, "line-width", line_width)?;
+                WidgetKind::Graph {
+                    values: parse_binding(
+                        dashboard_path,
+                        &source_path,
+                        "value",
+                        required_string(dashboard_path, &source_path, "value", self.value)?,
+                    )?,
+                    min: self.min,
+                    max: self.max,
+                    line_width,
+                    fill: self.fill.unwrap_or(false),
+                }
+            }
+            RawWidgetType::Gauge => {
+                self.reject_children(dashboard_path, &source_path)?;
+                self.reject_fields(
+                    dashboard_path,
+                    &source_path,
+                    [
+                        ("text", self.text.is_some()),
+                        ("source", self.source.is_some()),
+                        ("orientation", self.orientation.is_some()),
+                        ("line-width", self.line_width.is_some()),
+                        ("fill", self.fill.is_some()),
+                        ("equals", self.equals.is_some()),
+                        ("not-equals", self.not_equals.is_some()),
+                        ("component", self.component.is_some()),
+                    ],
+                )?;
+                let value = parse_binding(
+                    dashboard_path,
+                    &source_path,
+                    "value",
+                    required_string(dashboard_path, &source_path, "value", self.value)?,
+                )?;
+                let (min, max) = validate_range(
+                    dashboard_path,
+                    &source_path,
+                    "gauge",
+                    self.min.unwrap_or(0.0),
+                    self.max.unwrap_or(100.0),
+                )?;
+                let (start_angle, sweep_angle, thickness) = validate_arc(
+                    dashboard_path,
+                    &source_path,
+                    self.start_angle.unwrap_or(-135.0),
+                    self.sweep_angle.unwrap_or(270.0),
+                    self.thickness.unwrap_or(8.0),
+                )?;
+                let needle_width = self.needle_width.unwrap_or(3.0);
+                validate_positive(dashboard_path, &source_path, "needle-width", needle_width)?;
+                WidgetKind::Gauge {
+                    value,
+                    min,
+                    max,
+                    start_angle,
+                    sweep_angle,
+                    thickness,
+                    needle_width,
+                }
+            }
+            RawWidgetType::Conditional => {
+                self.reject_fields(
+                    dashboard_path,
+                    &source_path,
+                    [
+                        ("text", self.text.is_some()),
+                        ("source", self.source.is_some()),
+                        ("min", self.min.is_some()),
+                        ("max", self.max.is_some()),
+                        ("orientation", self.orientation.is_some()),
+                        ("start-angle", self.start_angle.is_some()),
+                        ("sweep-angle", self.sweep_angle.is_some()),
+                        ("thickness", self.thickness.is_some()),
+                        ("needle-width", self.needle_width.is_some()),
+                        ("line-width", self.line_width.is_some()),
+                        ("fill", self.fill.is_some()),
+                        ("component", self.component.is_some()),
+                    ],
+                )?;
+                if self.equals.is_some() && self.not_equals.is_some() {
+                    return Err(widget_error(
+                        dashboard_path,
+                        &source_path,
+                        "conditional accepts either equals or not-equals, not both",
+                    ));
+                }
+                let condition = Condition::new(
+                    parse_binding(
+                        dashboard_path,
+                        &source_path,
+                        "value",
+                        required_string(dashboard_path, &source_path, "value", self.value)?,
+                    )?,
+                    match (self.equals, self.not_equals) {
+                        (Some(value), None) => ConditionComparison::Equals(value),
+                        (None, Some(value)) => ConditionComparison::NotEquals(value),
+                        (None, None) => ConditionComparison::Truthy,
+                        (Some(_), Some(_)) => unreachable!("validated above"),
+                    },
+                );
+                WidgetKind::Conditional {
+                    condition,
+                    children: normalize_children(
+                        self.children,
+                        dashboard_path,
+                        base_dir,
+                        &source_path,
+                        ids,
+                        components,
+                        component_stack,
+                    )?,
+                }
+            }
+            RawWidgetType::Component => {
+                unreachable!("components are expanded before normalization")
             }
         };
 
@@ -421,6 +769,15 @@ impl RawWidget {
                 ("min", self.min.is_some()),
                 ("max", self.max.is_some()),
                 ("orientation", self.orientation.is_some()),
+                ("start-angle", self.start_angle.is_some()),
+                ("sweep-angle", self.sweep_angle.is_some()),
+                ("thickness", self.thickness.is_some()),
+                ("needle-width", self.needle_width.is_some()),
+                ("line-width", self.line_width.is_some()),
+                ("fill", self.fill.is_some()),
+                ("equals", self.equals.is_some()),
+                ("not-equals", self.not_equals.is_some()),
+                ("component", self.component.is_some()),
             ],
         )
     }
@@ -449,6 +806,8 @@ fn normalize_children(
     base_dir: &Path,
     parent_path: &str,
     ids: &mut HashSet<String>,
+    components: &HashMap<String, RawWidget>,
+    component_stack: &mut Vec<String>,
 ) -> Result<Vec<Widget>, DashboardError> {
     children
         .into_iter()
@@ -459,17 +818,76 @@ fn normalize_children(
                 base_dir,
                 format!("{parent_path}.children[{index}]"),
                 ids,
+                components,
+                component_stack,
             )
         })
         .collect()
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 enum RawProgressOrientation {
     #[default]
     Horizontal,
     Vertical,
+}
+
+fn validate_range(
+    dashboard_path: &Path,
+    widget_path: &str,
+    widget_type: &str,
+    min: f64,
+    max: f64,
+) -> Result<(f64, f64), DashboardError> {
+    if !min.is_finite() || !max.is_finite() || min >= max {
+        Err(widget_error(
+            dashboard_path,
+            widget_path,
+            format!("{widget_type} range must be finite and min < max, got {min}..{max}"),
+        ))
+    } else {
+        Ok((min, max))
+    }
+}
+
+fn validate_arc(
+    dashboard_path: &Path,
+    widget_path: &str,
+    start_angle: f32,
+    sweep_angle: f32,
+    thickness: f32,
+) -> Result<(f32, f32, f32), DashboardError> {
+    if !start_angle.is_finite()
+        || !sweep_angle.is_finite()
+        || sweep_angle == 0.0
+        || sweep_angle.abs() > 360.0
+    {
+        return Err(widget_error(
+            dashboard_path,
+            widget_path,
+            "angles must be finite and sweep-angle must be non-zero and at most 360 degrees",
+        ));
+    }
+    validate_positive(dashboard_path, widget_path, "thickness", thickness)?;
+    Ok((start_angle, sweep_angle, thickness))
+}
+
+fn validate_positive(
+    dashboard_path: &Path,
+    widget_path: &str,
+    field: &str,
+    value: f32,
+) -> Result<(), DashboardError> {
+    if value.is_finite() && value > 0.0 {
+        Ok(())
+    } else {
+        Err(widget_error(
+            dashboard_path,
+            widget_path,
+            format!("{field} must be finite and greater than zero"),
+        ))
+    }
 }
 
 impl From<RawProgressOrientation> for ProgressOrientation {

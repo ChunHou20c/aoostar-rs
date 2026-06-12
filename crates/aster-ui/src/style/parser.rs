@@ -408,7 +408,17 @@ fn parse_color(path: &Path, property: &str, value: &str) -> Result<Color, Dashbo
 fn validate_widget_type(path: &Path, value: &str) -> Result<(), DashboardError> {
     if matches!(
         value,
-        "row" | "column" | "stack" | "text" | "image" | "spacer" | "progress"
+        "row"
+            | "column"
+            | "stack"
+            | "text"
+            | "image"
+            | "spacer"
+            | "progress"
+            | "circular-progress"
+            | "graph"
+            | "gauge"
+            | "conditional"
     ) {
         Ok(())
     } else {

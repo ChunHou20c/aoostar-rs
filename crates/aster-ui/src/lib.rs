@@ -22,4 +22,6 @@ pub use style::{
     ObjectFit, ObjectPosition, Overflow, StyleSheet, StyledNode, TextAlign, TextOverflow,
     WhiteSpace,
 };
-pub use widget::{FlexDirection, ProgressOrientation, Widget, WidgetKind};
+pub use widget::{
+    Condition, ConditionComparison, FlexDirection, ProgressOrientation, Widget, WidgetKind,
+};

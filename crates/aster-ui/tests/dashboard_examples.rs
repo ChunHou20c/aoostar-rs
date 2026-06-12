@@ -13,11 +13,16 @@ fn workspace_path(path: impl AsRef<Path>) -> PathBuf {
 
 fn count_widgets(widget: &Widget) -> usize {
     let children = match widget.kind() {
-        WidgetKind::Flex { children, .. } | WidgetKind::Stack { children } => children,
+        WidgetKind::Flex { children, .. }
+        | WidgetKind::Stack { children }
+        | WidgetKind::Conditional { children, .. } => children,
         WidgetKind::Text { .. }
         | WidgetKind::Image { .. }
         | WidgetKind::Spacer
-        | WidgetKind::Progress { .. } => return 1,
+        | WidgetKind::Progress { .. }
+        | WidgetKind::CircularProgress { .. }
+        | WidgetKind::Graph { .. }
+        | WidgetKind::Gauge { .. } => return 1,
     };
 
     1 + children.iter().map(count_widgets).sum::<usize>()
@@ -92,4 +97,24 @@ fn loads_storage_overview_example() {
         )
         .unwrap();
     assert_eq!(image.dimensions(), (960, 376));
+}
+
+#[test]
+fn loads_advanced_components_example() {
+    let dashboard = Dashboard::load(workspace_path(
+        "examples/dashboards/advanced-components/dashboard.toml",
+    ))
+    .unwrap();
+
+    assert_eq!(dashboard.root().id(), Some("advanced-components"));
+    assert_eq!(count_widgets(dashboard.root()), 9);
+    let image = Renderer::new(&dashboard)
+        .unwrap()
+        .render_with_values(
+            &dashboard,
+            &load_values("examples/dashboards/advanced-components/values.txt"),
+        )
+        .unwrap();
+    assert_eq!(image.dimensions(), (480, 120));
+    assert!(image.pixels().any(|pixel| pixel[3] > 0));
 }

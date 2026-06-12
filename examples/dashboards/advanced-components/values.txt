@@ -1,0 +1,4 @@
+cpu_percent: 63
+cpu_history: 20,35,28,50,46,72,63
+cpu_temperature: 68
+disk_state: warning

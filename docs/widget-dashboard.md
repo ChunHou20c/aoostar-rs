@@ -1,10 +1,10 @@
 # Widget Dashboards
 
-Widget dashboards are the planned headless layout mode for `asterctl`. The
-`aster-ui` crate currently provides configuration validation, strict CSS
-parsing, computed styles, static layout, and software rendering for text and
-images. Value binding and progress painting are implemented; CLI integration
-is still under development.
+Widget dashboards are the headless layout mode for `asterctl`. The `aster-ui`
+crate provides configuration validation, strict CSS parsing, computed styles,
+dynamic layout, sensor bindings, and software rendering for text, images, and
+graphical indicators. One-shot, continuous, and live-reload CLI flows are
+available.
 
 See the [execution plan](widget-renderer-plan.md) for implementation phases and
 completion criteria.
@@ -63,6 +63,11 @@ The configuration model currently accepts:
 | `image` | `source` | `id`, `class` | no |
 | `spacer` | none | `id`, `class` | no |
 | `progress` | `value` | `id`, `class`, `min`, `max`, `orientation` | no |
+| `circular-progress` | `value` | `id`, `class`, `min`, `max`, `start-angle`, `sweep-angle`, `thickness` | no |
+| `graph` | `value` | `id`, `class`, `min`, `max`, `line-width`, `fill` | no |
+| `gauge` | `value` | `id`, `class`, `min`, `max`, `start-angle`, `sweep-angle`, `thickness`, `needle-width` | no |
+| `conditional` | `value` | `id`, `class`, `equals`, `not-equals` | yes |
+| `component` | `component` | `id`, `class` | no |
 
 `row` and `column` normalize to a common flex widget with different
 directions. Widget IDs must be unique. IDs and classes may contain ASCII
@@ -96,6 +101,102 @@ Progress widgets clamp resolved numeric values to `min` and `max`. Missing
 values use `min`; malformed present values return an error identifying the
 widget path. `background-color` paints the track and `color` paints the fill.
 Vertical progress fills from bottom to top.
+
+### Circular Progress And Gauges
+
+`circular-progress` draws an arc using `color`. `border-color` draws its track.
+The default range is 0 through 100, `start-angle` is -90 degrees,
+`sweep-angle` is 360 degrees, and `thickness` is 8 pixels.
+
+`gauge` uses the same range and arc fields, but defaults to a -135 degree
+start and a 270 degree sweep. It also draws a needle using `color`;
+`needle-width` defaults to 3 pixels.
+
+```toml
+[[root.children]]
+type = "circular-progress"
+value = "{{ cpu_percent }}"
+thickness = 6
+
+[[root.children]]
+type = "gauge"
+value = "{{ cpu_temperature }}"
+min = 20
+max = 100
+needle-width = 2
+```
+
+Angles are measured clockwise from the right-hand side of the widget. Negative
+sweeps draw counter-clockwise. A sweep must be non-zero and no larger than 360
+degrees in either direction.
+
+### Graphs
+
+`graph.value` resolves to samples separated by commas, semicolons, or
+whitespace. `color` controls the line, `line-width` defaults to 2 pixels, and
+`fill = true` adds a translucent area below the line. If `min` or `max` is
+omitted, that bound is derived from the samples.
+
+```toml
+[[root.children]]
+type = "graph"
+value = "{{ cpu_history }}"
+min = 0
+max = 100
+line-width = 2
+fill = true
+```
+
+### Conditional Visibility
+
+A `conditional` participates in layout only when its condition is true. With
+no comparison field, empty values and `0`, `false`, `no`, or `off`
+case-insensitively are false. Use either `equals` or `not-equals` for an exact
+string comparison.
+
+```toml
+[[root.children]]
+type = "conditional"
+value = "{{ disk_state }}"
+not-equals = "healthy"
+
+[[root.children.children]]
+type = "text"
+text = "Disk requires attention"
+```
+
+Hidden branches are not measured or painted.
+
+### Reusable Components
+
+Named components are widget subtrees declared in the top-level `components`
+table. A `component` widget expands the template at dashboard load. Instance
+classes are appended to the template root classes, and an instance ID is
+applied to the expanded root.
+
+```toml
+[components.metric-card]
+type = "column"
+class = ["metric-card"]
+
+[[components.metric-card.children]]
+type = "text"
+text = "AOOSTAR"
+
+[root]
+type = "row"
+
+[[root.children]]
+type = "component"
+component = "metric-card"
+id = "left-card"
+class = ["highlighted"]
+```
+
+Templates cannot define IDs because using a template more than once would
+duplicate them. Component references may be nested, but cycles are rejected.
+Templates currently use the same global sensor bindings as the rest of the
+dashboard; per-instance component parameters are not supported.
 
 ## One-Shot Preview
 
