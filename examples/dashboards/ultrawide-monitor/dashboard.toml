@@ -42,6 +42,44 @@ type = "column"
 id = "ultrawide-dashboard"
 class = ["dashboard"]
 
+# Top Bar
+[[root.children]]
+type = "row"
+class = ["top-bar"]
+
+[[root.children.children]]
+type = "row"
+class = ["top-bar-left"]
+
+[[root.children.children.children]]
+type = "text"
+class = ["top-bar-title"]
+text = "SYS_MONITOR_V1.0"
+
+[[root.children.children.children]]
+type = "text"
+class = ["top-bar-sep"]
+text = "|"
+
+[[root.children.children.children]]
+type = "column"
+class = ["top-bar-hostname"]
+
+[[root.children.children.children.children]]
+type = "text"
+class = ["top-bar-hostname-title"]
+text = "HOSTNAME"
+
+[[root.children.children.children.children]]
+type = "text"
+class = ["top-bar-hostname-value"]
+text = "{{ hostname | default('AOOSTAR-SRV') }}"
+
+[[root.children.children]]
+type = "text"
+class = ["top-bar-uptime"]
+text = "UPTIME: {{ uptime | default('1D 04H 22M') }}"
+
 # Row 1
 [[root.children]]
 type = "row"

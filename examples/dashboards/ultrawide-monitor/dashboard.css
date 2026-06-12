@@ -8,6 +8,69 @@
     background-color: #131313;
 }
 
+.top-bar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px;
+    height: 38px;
+    background-color: #1c1b1b;
+    border-radius: 4px;
+}
+
+.top-bar-left {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
+.top-bar-title {
+    font-family: "DejaVu Sans";
+    font-size: 20px;
+    font-weight: 700;
+    color: #00f5ff;
+    white-space: nowrap;
+}
+
+.top-bar-sep {
+    font-family: "DejaVu Sans";
+    font-size: 20px;
+    font-weight: 700;
+    color: #3a494a;
+    white-space: nowrap;
+}
+
+.top-bar-hostname {
+    display: flex;
+    flex-direction: column;
+}
+
+.top-bar-hostname-title {
+    font-family: "DejaVu Sans";
+    font-size: 10px;
+    font-weight: 700;
+    color: #849495;
+    white-space: nowrap;
+}
+
+.top-bar-hostname-value {
+    font-family: "DejaVu Sans";
+    font-size: 16px;
+    font-weight: 700;
+    color: #e5e2e1;
+    white-space: nowrap;
+}
+
+.top-bar-uptime {
+    font-family: "DejaVu Sans";
+    font-size: 12px;
+    font-weight: 700;
+    color: #e5e2e1;
+    white-space: nowrap;
+}
+
 .grid-row {
     display: flex;
     flex-direction: row;
@@ -41,6 +104,7 @@
     font-size: 10px;
     font-weight: 700;
     color: #00f5ff;
+    white-space: nowrap;
 }
 
 .label-orange {
@@ -48,18 +112,21 @@
     font-size: 10px;
     font-weight: 700;
     color: #ffb800;
+    white-space: nowrap;
 }
 
 .icon-cyan {
     font-family: "Symbols Nerd Font Mono";
     font-size: 12px;
     color: #00f5ff;
+    white-space: nowrap;
 }
 
 .icon-orange {
     font-family: "Symbols Nerd Font Mono";
     font-size: 12px;
     color: #ffb800;
+    white-space: nowrap;
 }
 
 .sensor-value {
@@ -67,7 +134,8 @@
     font-size: 32px;
     font-weight: 700;
     color: #e5e2e1;
-    text-align: center;
+    text-align: left;
+    white-space: nowrap;
 }
 
 .progress-cyan {

@@ -17,3 +17,5 @@ storage_hdd[0]['temperature']: 36
 storage_hdd[0]['used']: 22
 storage_hdd[1]['temperature']: 37
 storage_hdd[1]['used']: 63
+hostname: aoostar
+uptime: 1D 04H 22M
