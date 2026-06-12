@@ -1,0 +1,85 @@
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    width: 960px;
+    height: 376px;
+    padding: 12px;
+    gap: 8px;
+    background-color: #131313;
+}
+
+.grid-row {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    height: 0%;
+    gap: 8px;
+}
+
+.sensor-module {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    width: 0%;
+    background-color: #131313;
+    border-width: 1px;
+    border-color: #3a494a;
+    border-radius: 4px;
+    padding: 10px;
+    justify-content: space-between;
+}
+
+.module-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.label-cyan {
+    font-family: "DejaVu Sans";
+    font-size: 10px;
+    font-weight: 700;
+    color: #00f5ff;
+}
+
+.label-orange {
+    font-family: "DejaVu Sans";
+    font-size: 10px;
+    font-weight: 700;
+    color: #ffb800;
+}
+
+.icon-cyan {
+    font-family: "Symbols Nerd Font Mono";
+    font-size: 12px;
+    color: #00f5ff;
+}
+
+.icon-orange {
+    font-family: "Symbols Nerd Font Mono";
+    font-size: 12px;
+    color: #ffb800;
+}
+
+.sensor-value {
+    font-family: "HarmonyOS Sans SC";
+    font-size: 32px;
+    font-weight: 700;
+    color: #e5e2e1;
+    text-align: center;
+}
+
+.progress-cyan {
+    height: 4px;
+    color: #00f5ff;
+    background-color: #1c1b1b;
+    border-radius: 2px;
+}
+
+.progress-orange {
+    height: 4px;
+    color: #ffb800;
+    background-color: #1c1b1b;
+    border-radius: 2px;
+}

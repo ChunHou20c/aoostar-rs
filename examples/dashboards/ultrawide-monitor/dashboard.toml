@@ -1,0 +1,118 @@
+[dashboard]
+width = 960
+height = 376
+stylesheet = "dashboard.css"
+background = "#131313"
+fonts = [
+    "../../../fonts/DejaVuSans.ttf",
+    "../../../fonts/HarmonyOS_Sans_SC_Bold.ttf",
+    "../../../fonts/SymbolsNerdFontMono-Regular.ttf",
+]
+
+[components.sensor-module]
+type = "column"
+class = ["sensor-module"]
+
+[[components.sensor-module.children]]
+type = "row"
+class = ["module-header"]
+
+[[components.sensor-module.children.children]]
+type = "text"
+class = ["{{ @label-class }}"]
+text = "{{ @label }}"
+
+[[components.sensor-module.children.children]]
+type = "text"
+class = ["{{ @icon-class }}"]
+text = "{{ @icon }}"
+
+[[components.sensor-module.children]]
+type = "text"
+class = ["sensor-value"]
+text = "{{ @display-value }}"
+
+[[components.sensor-module.children]]
+type = "progress"
+class = ["{{ @progress-class }}"]
+value = "{{ @sensor-value }}"
+
+[root]
+type = "column"
+id = "ultrawide-dashboard"
+class = ["dashboard"]
+
+# Row 1
+[[root.children]]
+type = "row"
+class = ["grid-row"]
+
+[[root.children.children]]
+type = "component"
+component = "sensor-module"
+params = { label = "CPU TEMP", icon = "", display-value = "{{ cpu_temperature | number(0) }}°C", sensor-value = "{{ cpu_temperature }}", label-class = "label-cyan", icon-class = "icon-cyan", progress-class = "progress-cyan" }
+
+[[root.children.children]]
+type = "component"
+component = "sensor-module"
+params = { label = "LOAD AVG", icon = "", display-value = "{{ cpu_percent | number(1) }}%", sensor-value = "{{ cpu_percent }}", label-class = "label-cyan", icon-class = "icon-cyan", progress-class = "progress-cyan" }
+
+[[root.children.children]]
+type = "component"
+component = "sensor-module"
+params = { label = "MEMORY", icon = "", display-value = "{{ memory_usage | number(1) }}%", sensor-value = "{{ memory_usage }}", label-class = "label-cyan", icon-class = "icon-cyan", progress-class = "progress-cyan" }
+
+[[root.children.children]]
+type = "component"
+component = "sensor-module"
+params = { label = "MEM USED", icon = "", display-value = "{{ memory_usage | number(1) }}%", sensor-value = "{{ memory_usage }}", label-class = "label-cyan", icon-class = "icon-cyan", progress-class = "progress-cyan" }
+
+# Row 2
+[[root.children]]
+type = "row"
+class = ["grid-row"]
+
+[[root.children.children]]
+type = "component"
+component = "sensor-module"
+params = { label = "GPU TEMP", icon = "", display-value = "{{ gpu_temperature | number(0) }}°C", sensor-value = "{{ gpu_temperature }}", label-class = "label-orange", icon-class = "icon-orange", progress-class = "progress-orange" }
+
+[[root.children.children]]
+type = "component"
+component = "sensor-module"
+params = { label = "GPU LOAD", icon = "", display-value = "{{ gpu_core | number(1) }}%", sensor-value = "{{ gpu_core }}", label-class = "label-orange", icon-class = "icon-orange", progress-class = "progress-orange" }
+
+[[root.children.children]]
+type = "component"
+component = "sensor-module"
+params = { label = "DISK USAGE", icon = "", display-value = "{{ storage_ssd[0]['used'] | number(0) }}%", sensor-value = "{{ storage_ssd[0]['used'] }}", label-class = "label-cyan", icon-class = "icon-cyan", progress-class = "progress-cyan" }
+
+[[root.children.children]]
+type = "component"
+component = "sensor-module"
+params = { label = "DISK TEMP", icon = "", display-value = "{{ storage_ssd[0]['temperature'] | number(0) }}°C", sensor-value = "{{ storage_ssd[0]['temperature'] }}", label-class = "label-cyan", icon-class = "icon-cyan", progress-class = "progress-cyan" }
+
+# Row 3
+[[root.children]]
+type = "row"
+class = ["grid-row"]
+
+[[root.children.children]]
+type = "component"
+component = "sensor-module"
+params = { label = "UPLOAD", icon = "", display-value = "{{ net_upload_speed | number(0) }}", sensor-value = "{{ net_upload_speed }}", label-class = "label-cyan", icon-class = "icon-cyan", progress-class = "progress-cyan" }
+
+[[root.children.children]]
+type = "component"
+component = "sensor-module"
+params = { label = "DOWNLOAD", icon = "", display-value = "{{ net_download_speed | number(0) }}", sensor-value = "{{ net_download_speed }}", label-class = "label-cyan", icon-class = "icon-cyan", progress-class = "progress-cyan" }
+
+[[root.children.children]]
+type = "component"
+component = "sensor-module"
+params = { label = "NVME TEMP", icon = "", display-value = "{{ storage_ssd[1]['temperature'] | number(0) }}°C", sensor-value = "{{ storage_ssd[1]['temperature'] }}", label-class = "label-cyan", icon-class = "icon-cyan", progress-class = "progress-cyan" }
+
+[[root.children.children]]
+type = "component"
+component = "sensor-module"
+params = { label = "NETWORK", icon = "", display-value = "{{ net_ip_address | default('0.0.0.0') }}", sensor-value = "0", label-class = "label-cyan", icon-class = "icon-cyan", progress-class = "progress-cyan" }
