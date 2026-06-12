@@ -1,0 +1,120 @@
+[dashboard]
+width = 960
+height = 376
+stylesheet = "dashboard.css"
+background = "#001c1c"
+fonts = [
+    "../../../fonts/DejaVuSans.ttf",
+    "../../../fonts/HarmonyOS_Sans_SC_Bold.ttf",
+]
+
+[components.pill]
+type = "row"
+class = ["pill", "{{ @pill-class }}"]
+
+[[components.pill.children]]
+type = "text"
+class = ["pill-label", "{{ @label-class }}"]
+text = "{{ @label }}"
+
+[[components.pill.children]]
+type = "text"
+class = ["pill-value", "{{ @value-class }}"]
+text = "{{ @value }}"
+
+[components.icon-card]
+type = "row"
+class = ["small-card", "{{ @card-class }}"]
+
+[[components.icon-card.children]]
+type = "text"
+class = ["card-icon", "{{ @icon-class }}"]
+text = "{{ @icon }}"
+
+[[components.icon-card.children]]
+type = "column"
+class = ["pill-column"]
+
+[[components.icon-card.children.children]]
+type = "component"
+component = "pill"
+params = { pill-class = "compact-pill", label-class = "{{ @top-label-class }}", value-class = "compact-value", label = "{{ @top-label }}", value = "{{ @top-value }}" }
+
+[[components.icon-card.children.children]]
+type = "component"
+component = "pill"
+params = { pill-class = "compact-pill", label-class = "{{ @bottom-label-class }}", value-class = "compact-value", label = "{{ @bottom-label }}", value = "{{ @bottom-value }}" }
+
+[root]
+type = "row"
+id = "original-panel-recreation"
+class = ["dashboard"]
+
+[[root.children]]
+type = "column"
+class = ["cpu-card"]
+
+[[root.children.children]]
+type = "row"
+class = ["temperature-display"]
+
+[[root.children.children.children]]
+type = "text"
+class = ["temperature-number"]
+text = "{{ cpu_temperature | number(0) }}"
+
+[[root.children.children.children]]
+type = "text"
+class = ["temperature-unit"]
+text = "°C"
+
+[[root.children.children]]
+type = "column"
+class = ["cpu-pill"]
+
+[[root.children.children.children]]
+type = "text"
+class = ["cpu-label"]
+text = "CPU"
+
+[[root.children.children.children]]
+type = "text"
+class = ["cpu-value"]
+text = "{{ cpu_percent | number(0) }}%"
+
+[[root.children]]
+type = "column"
+class = ["card-column"]
+
+[[root.children.children]]
+type = "component"
+component = "icon-card"
+params = { card-class = "memory-card", icon-class = "memory-icon", icon = "RAM", top-label-class = "empty-label", top-label = "-", top-value = "{{ memory_usage | number(0) }}%", bottom-label-class = "empty-label", bottom-label = "-", bottom-value = "{{ memory_Temperature | number(0) }}°C" }
+
+[[root.children.children]]
+type = "column"
+class = ["small-card", "info-card"]
+
+[[root.children.children.children]]
+type = "component"
+component = "pill"
+params = { pill-class = "wide-pill", label-class = "empty-label", value-class = "wide-value", label = "-", value = "{{ DATE_m_d_h_m_2 | default(\"06/10 14:04\") }}" }
+
+[[root.children.children.children]]
+type = "component"
+component = "pill"
+params = { pill-class = "wide-pill", label-class = "empty-label", value-class = "wide-value", label = "-", value = "{{ net_ip_address }}" }
+
+[[root.children]]
+type = "column"
+class = ["card-column"]
+
+[[root.children.children]]
+type = "component"
+component = "icon-card"
+params = { card-class = "gpu-card", icon-class = "gpu-icon", icon = "GPU", top-label-class = "metric-name", top-label = "GPU:", top-value = "{{ gpu_core | number(0) }}%", bottom-label-class = "metric-name", bottom-label = "TEMP:", bottom-value = "{{ gpu_temperature | number(0) }}°C" }
+
+[[root.children.children]]
+type = "component"
+component = "icon-card"
+params = { card-class = "network-card", icon-class = "network-icon", icon = "NET", top-label-class = "empty-label", top-label = "-", top-value = "{{ net_upload_speed }}{{ net_upload_speed#unit }}", bottom-label-class = "empty-label", bottom-label = "-", bottom-value = "{{ net_download_speed }}{{ net_download_speed#unit }}" }

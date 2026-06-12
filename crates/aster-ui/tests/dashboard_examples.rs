@@ -28,6 +28,11 @@ fn count_widgets(widget: &Widget) -> usize {
     1 + children.iter().map(count_widgets).sum::<usize>()
 }
 
+fn contains_image(widget: &Widget) -> bool {
+    matches!(widget.kind(), WidgetKind::Image { .. })
+        || widget.children().iter().any(contains_image)
+}
+
 fn load_values(path: impl AsRef<Path>) -> ValueMap {
     fs::read_to_string(workspace_path(path))
         .unwrap()
@@ -117,4 +122,21 @@ fn loads_advanced_components_example() {
         .unwrap();
     assert_eq!(image.dimensions(), (960, 376));
     assert!(image.pixels().any(|pixel| pixel[3] > 0));
+}
+
+#[test]
+fn recreates_original_panel_without_background_images() {
+    let dashboard = Dashboard::load(workspace_path(
+        "examples/dashboards/original-panel-recreation/dashboard.toml",
+    ))
+    .unwrap();
+
+    assert_eq!(dashboard.root().id(), Some("original-panel-recreation"));
+    assert!(!contains_image(dashboard.root()));
+    let image = Renderer::new(&dashboard)
+        .unwrap()
+        .render_with_values(&dashboard, &load_values("cfg/sensors/values.txt"))
+        .unwrap();
+    assert_eq!(image.dimensions(), (960, 376));
+    assert!(count_widgets(dashboard.root()) > 30);
 }

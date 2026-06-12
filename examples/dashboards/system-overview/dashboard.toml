@@ -8,65 +8,59 @@ fonts = [
     "../../../fonts/HarmonyOS_Sans_SC_Bold.ttf",
 ]
 
+[components.metric-card]
+type = "column"
+class = ["metric"]
+
+[[components.metric-card.children]]
+type = "text"
+class = ["metric-label"]
+text = "{{ @label }}"
+
+[[components.metric-card.children]]
+type = "text"
+class = ["metric-value"]
+text = "{{ @display-value }}"
+
+[[components.metric-card.children]]
+type = "progress"
+class = ["metric-progress", "{{ @progress-class }}"]
+value = "{{ @sensor-value }}"
+
 [root]
 type = "row"
 id = "system-overview"
 class = ["dashboard"]
 
 [[root.children]]
-type = "column"
-class = ["metric", "cpu"]
+type = "component"
+component = "metric-card"
+class = ["cpu"]
 
-[[root.children.children]]
-type = "text"
-class = ["metric-label"]
-text = "CPU"
-
-[[root.children.children]]
-type = "text"
-class = ["metric-value"]
-text = "{{ cpu_percent | number(0) }}%"
-
-[[root.children.children]]
-type = "progress"
-class = ["metric-progress"]
-value = "{{ cpu_percent }}"
+[root.children.params]
+label = "CPU"
+display-value = "{{ cpu_percent | number(0) }}%"
+sensor-value = "{{ cpu_percent }}"
+progress-class = "standard-progress"
 
 [[root.children]]
-type = "column"
-class = ["metric", "temperature"]
+type = "component"
+component = "metric-card"
+class = ["temperature"]
 
-[[root.children.children]]
-type = "text"
-class = ["metric-label"]
-text = "TEMPERATURE"
-
-[[root.children.children]]
-type = "text"
-class = ["metric-value"]
-text = "{{ cpu_temperature | number(0) }} C"
-
-[[root.children.children]]
-type = "progress"
-class = ["metric-progress", "temperature-progress"]
-value = "{{ cpu_temperature }}"
-max = 100
+[root.children.params]
+label = "TEMPERATURE"
+display-value = "{{ cpu_temperature | number(0) }} C"
+sensor-value = "{{ cpu_temperature }}"
+progress-class = "temperature-progress"
 
 [[root.children]]
-type = "column"
-class = ["metric", "memory"]
+type = "component"
+component = "metric-card"
+class = ["memory"]
 
-[[root.children.children]]
-type = "text"
-class = ["metric-label"]
-text = "MEMORY"
-
-[[root.children.children]]
-type = "text"
-class = ["metric-value"]
-text = "{{ memory_usage | number(0) }}%"
-
-[[root.children.children]]
-type = "progress"
-class = ["metric-progress"]
-value = "{{ memory_usage }}"
+[root.children.params]
+label = "MEMORY"
+display-value = "{{ memory_usage | number(0) }}%"
+sensor-value = "{{ memory_usage }}"
+progress-class = "standard-progress"

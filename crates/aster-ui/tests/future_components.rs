@@ -124,17 +124,18 @@ stylesheet = "dashboard.css"
 
 [components.label]
 type = "text"
+class = ["{{ @style-class }}"]
 text = "{{ @prefix }}: {{ @value }}"
 
 [components.forwarder]
 type = "component"
 component = "label"
-params = { prefix = "{{ @title }}", value = "{{ @sensor }}" }
+params = { prefix = "{{ @title }}", value = "{{ @sensor }}", style-class = "{{ @class-name }}" }
 
 [root]
 type = "component"
 component = "forwarder"
-params = { title = "CPU", sensor = "{{ cpu }}" }
+params = { title = "CPU", sensor = "{{ cpu }}", class-name = "cpu-label" }
 "#,
     )
     .unwrap();
@@ -143,6 +144,7 @@ params = { title = "CPU", sensor = "{{ cpu }}" }
     let WidgetKind::Text { text } = dashboard.root().kind() else {
         panic!("forwarded component should expand to text");
     };
+    assert_eq!(dashboard.root().classes(), &["cpu-label"]);
     assert_eq!(
         text.resolve(&ValueMap::from([("cpu".to_string(), "42".to_string())]))
             .unwrap(),

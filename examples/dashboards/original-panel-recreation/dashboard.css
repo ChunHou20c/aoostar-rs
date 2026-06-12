@@ -1,0 +1,186 @@
+.dashboard {
+    padding: 19px;
+    gap: 15px;
+    align-items: stretch;
+    font-family: "HarmonyOS Sans SC";
+    color: #ffffff;
+}
+
+.cpu-card {
+    width: 338px;
+    height: 338px;
+    flex-shrink: 0;
+    padding: 26px;
+    gap: 14px;
+    justify-content: center;
+    align-items: center;
+    background-color: #ffab24;
+    border-radius: 30px;
+}
+
+.temperature-display {
+    width: 284px;
+    height: 126px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.temperature-number {
+    font-size: 120px;
+    font-weight: 700;
+    line-height: 0.9;
+    white-space: nowrap;
+}
+
+.temperature-unit {
+    align-self: start;
+    margin: 8px;
+    font-size: 42px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.cpu-pill {
+    width: 284px;
+    height: 136px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-width: 2px;
+    border-color: #ffffff;
+    border-radius: 68px;
+}
+
+.cpu-label {
+    font-size: 30px;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.cpu-value {
+    font-size: 60px;
+    font-weight: 700;
+    line-height: 1.05;
+    white-space: nowrap;
+}
+
+.card-column {
+    width: 275px;
+    height: 338px;
+    flex-shrink: 0;
+    gap: 14px;
+}
+
+.small-card {
+    width: 275px;
+    height: 162px;
+    flex-shrink: 0;
+    padding: 24px;
+    gap: 16px;
+    align-items: center;
+    border-radius: 28px;
+}
+
+.memory-card {
+    background-color: #3157e8;
+}
+
+.info-card {
+    padding: 24px;
+    gap: 10px;
+    justify-content: center;
+    background-color: #3f6de8;
+}
+
+.gpu-card {
+    background-color: #ff786f;
+}
+
+.network-card {
+    background-color: #fa8d80;
+}
+
+.card-icon {
+    width: 78px;
+    flex-shrink: 0;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.memory-icon {
+    height: 72px;
+    align-items: center;
+    justify-content: center;
+    border-width: 4px;
+    border-color: #ffffff;
+    border-radius: 36px;
+}
+
+.gpu-icon {
+    width: 54px;
+    height: 54px;
+    align-items: center;
+    justify-content: center;
+    border-width: 3px;
+    border-color: #ffffff;
+    border-radius: 27px;
+    font-size: 14px;
+}
+
+.network-icon {
+    width: 78px;
+    font-size: 20px;
+}
+
+.pill-column {
+    flex-grow: 1;
+    gap: 10px;
+}
+
+.pill {
+    height: 52px;
+    flex-shrink: 0;
+    padding: 10px;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    border-width: 2px;
+    border-color: #ffffff;
+    border-radius: 26px;
+}
+
+.compact-pill {
+    width: 138px;
+}
+
+.wide-pill {
+    width: 227px;
+}
+
+.pill-label {
+    font-size: 22px;
+}
+
+.pill-value {
+    font-size: 24px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.metric-name {
+    font-size: 20px;
+}
+
+.empty-label {
+    display: none;
+}
+
+.compact-value {
+    font-size: 24px;
+}
+
+.wide-value {
+    font-size: 24px;
+}

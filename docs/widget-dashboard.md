@@ -202,16 +202,15 @@ Templates cannot define IDs because using a template more than once would
 duplicate them. Component references may be nested, but cycles are rejected.
 
 Template parameters use `{{ @name }}` placeholders in `text`, `value`,
-`equals`, `not-equals`, and nested component `params` values. Every inferred
-parameter must be supplied exactly once by the instance; missing, unknown, and
-malformed parameters are rejected while loading the dashboard. Parameter
-values may be literals or normal sensor bindings:
+`equals`, `not-equals`, class entries, and nested component `params` values.
+Every inferred parameter must be supplied exactly once by the instance;
+missing, unknown, and malformed parameters are rejected while loading the
+dashboard. Parameter values may be literals or normal sensor bindings:
 
 ```toml
-params = {
-    label = "CPU",
-    value = "{{ cpu_percent | number(0) }}"
-}
+[root.children.params]
+label = "CPU"
+value = "{{ cpu_percent | number(0) }}"
 ```
 
 Nested components can forward parameters:
@@ -327,7 +326,13 @@ Reference configurations and representative sensor maps are under:
 
 ```text
 examples/dashboards/
+  original-panel-recreation/
   data/
   storage-overview/
   system-overview/
 ```
+
+`original-panel-recreation` rebuilds the bundled author dashboard as nested
+widgets and CSS without using its background image. It demonstrates a tall
+primary card, a two-by-two secondary card grid, reusable pills, component
+parameters, and dense sensor bindings.

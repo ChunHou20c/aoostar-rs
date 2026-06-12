@@ -806,6 +806,9 @@ impl RawWidget {
         for value in self.params.values() {
             visitor("params", value)?;
         }
+        for class in &self.classes {
+            visitor("class", class)?;
+        }
         for child in &self.children {
             child.visit_parameter_strings(visitor)?;
         }
@@ -828,6 +831,9 @@ impl RawWidget {
         }
         for value in self.params.values_mut() {
             visitor("params", value)?;
+        }
+        for class in &mut self.classes {
+            visitor("class", class)?;
         }
         for child in &mut self.children {
             child.visit_parameter_strings_mut(visitor)?;
