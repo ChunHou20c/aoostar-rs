@@ -110,8 +110,22 @@ asterctl \
   --save
 ```
 
-This writes exactly one image to `out/dashboard.png` and exits. Continuous
-dashboard display mode is not implemented yet.
+This writes exactly one image to `out/dashboard.png` and exits.
+
+Continuous mode watches the sensor input and sends changed frames to the
+display:
+
+```shell
+asterctl \
+  --dashboard examples/dashboards/system-overview/dashboard.toml \
+  --sensor-path examples/dashboards/data \
+  --simulate \
+  --save
+```
+
+Sensor changes are debounced for 30 ms. Identical rendered frames are not saved
+or transmitted. Saved continuous frames use names such as
+`out/dashboard-0001.png`.
 
 ## Stylesheet Contract
 

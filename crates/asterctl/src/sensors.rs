@@ -8,7 +8,7 @@
 //! - file-based value provider with simple key-value pairs.
 
 use chrono::{DateTime, Datelike, Local, Timelike};
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use notify::event::{ModifyKind, RenameMode};
 use notify::{Event, EventKind, RecursiveMode, Watcher};
 use regex::Regex;
@@ -17,7 +17,6 @@ use std::fs;
 use std::io::{BufRead, BufReader};
 use std::ops::DerefMut;
 use std::path::{Path, PathBuf};
-use std::process::exit;
 use std::sync::{Arc, RwLock, mpsc};
 
 pub fn get_date_time_value(label: &str, now: &DateTime<Local>) -> Option<String> {
@@ -80,6 +79,15 @@ pub fn start_file_slurper<P: Into<PathBuf>>(
     values: Arc<RwLock<HashMap<String, String>>>,
     sensor_filter: Option<Vec<Regex>>,
 ) -> anyhow::Result<()> {
+    let _ = start_file_slurper_with_notifications(source_path, values, sensor_filter)?;
+    Ok(())
+}
+
+pub fn start_file_slurper_with_notifications<P: Into<PathBuf>>(
+    source_path: P,
+    values: Arc<RwLock<HashMap<String, String>>>,
+    sensor_filter: Option<Vec<Regex>>,
+) -> anyhow::Result<mpsc::Receiver<()>> {
     let dir_path = source_path.into();
     // read existing file(s)
     {
@@ -88,24 +96,15 @@ pub fn start_file_slurper<P: Into<PathBuf>>(
     }
 
     let file_values = values.clone();
+    let (change_tx, change_rx) = mpsc::channel();
+
+    let (tx, rx) = mpsc::channel::<notify::Result<Event>>();
+    let mut watcher = notify::recommended_watcher(tx)?;
+    watcher.watch(&dir_path, RecursiveMode::NonRecursive)?;
 
     std::thread::spawn(move || {
-        // watch sensor file/directory for changes
-        let (tx, rx) = mpsc::channel::<notify::Result<Event>>();
-        let mut watcher = match notify::recommended_watcher(tx) {
-            Ok(w) => w,
-            Err(e) => {
-                error!("Failed to initialize watcher: {e}");
-                exit(1);
-            }
-        };
-
+        let _watcher = watcher;
         info!("Starting sensor file watcher for {dir_path:?} with filter {sensor_filter:?}");
-        if let Err(e) = watcher.watch(&dir_path, RecursiveMode::NonRecursive) {
-            error!("Failed to start file watcher: {e}");
-            exit(1);
-        }
-
         // Block forever, printing out events as they come in
         for res in rx {
             let event = match res {
@@ -125,12 +124,16 @@ pub fn start_file_slurper<P: Into<PathBuf>>(
                         }
                         debug!("Modified sensor file ({kind:?}): {path:?}");
                         let mut val = file_values.write().expect("Poisoned sensor RwLock");
+                        let previous = val.clone();
 
                         if let Err(e) =
                             read_key_value_file(path, val.deref_mut(), sensor_filter.as_deref())
                         {
                             warn!("Failed to read sensor file {path:?}: {e}");
                             continue;
+                        }
+                        if *val != previous {
+                            let _ = change_tx.send(());
                         }
                     }
                 }
@@ -142,7 +145,7 @@ pub fn start_file_slurper<P: Into<PathBuf>>(
         }
     });
 
-    Ok(())
+    Ok(change_rx)
 }
 
 pub fn read_sensor_values<P: AsRef<Path>>(
@@ -291,6 +294,7 @@ pub fn read_filter_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Option<Vec<Re
 mod tests {
     use super::*;
     use rstest::rstest;
+    use std::time::Duration;
 
     #[test]
     fn is_filtered_does_not_filter_without_filters() {
@@ -340,6 +344,26 @@ mod tests {
         assert!(
             is_filtered(key, &filters),
             "Filter {filters:?} match match {key}"
+        );
+    }
+
+    #[test]
+    fn file_slurper_notifies_only_when_values_change() {
+        let directory = tempfile::tempdir().unwrap();
+        let sensor_file = directory.path().join("values.txt");
+        fs::write(&sensor_file, "cpu: 10\n").unwrap();
+        let values = Arc::new(RwLock::new(HashMap::new()));
+        let changes =
+            start_file_slurper_with_notifications(&sensor_file, values.clone(), None).unwrap();
+
+        fs::write(&sensor_file, "cpu: 20\n").unwrap();
+        changes.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert_eq!(values.read().unwrap().get("cpu").unwrap(), "20");
+
+        fs::write(&sensor_file, "cpu: 20\n").unwrap();
+        assert_eq!(
+            changes.recv_timeout(Duration::from_millis(200)),
+            Err(mpsc::RecvTimeoutError::Timeout)
         );
     }
 }

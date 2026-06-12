@@ -5,7 +5,7 @@
 #![deny(unsafe_code)]
 
 use asterctl::cfg::{MonitorConfig, Panel, load_custom_panel};
-use asterctl::dashboard::render_dashboard_once;
+use asterctl::dashboard::{render_dashboard_once, run_dashboard};
 use asterctl::render::PanelRenderer;
 use asterctl::sensors::{read_filter_file, read_key_value_file, start_file_slurper};
 use asterctl::{cfg, img};
@@ -121,12 +121,6 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if args.dashboard.is_some() {
-        return Err(anyhow!(
-            "continuous dashboard mode is not implemented yet; use --render-once --save"
-        ));
-    }
-
     // initialize display with given UART port parameter
     let mut builder = AooScreenBuilder::new();
     builder.no_init_check(args.write_only);
@@ -151,6 +145,18 @@ fn main() -> anyhow::Result<()> {
 
     // switch on screen for remaining commands
     screen.init()?;
+
+    if let Some(dashboard) = args.dashboard {
+        info!("Starting widget dashboard mode");
+        let output_dir = args.save.then_some(PathBuf::from("out"));
+        run_dashboard(
+            &mut screen,
+            dashboard,
+            PathBuf::from(args.sensor_path),
+            output_dir.as_deref(),
+        )?;
+        return Ok(());
+    }
 
     if let Some(config) = args.config {
         info!("Starting sensor panel mode");
