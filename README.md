@@ -6,6 +6,38 @@ It has only been tested on the WTR MAX, but should also support the GEM12+ PRO d
 
 Check out the **[User Guide](https://zehnm.github.io/aoostar-rs)** for a list of features and installation and usage information.
 
+## About This Fork
+
+This fork adds `aster-ui`, a headless widget renderer for building custom
+960x376 LCD dashboards without a browser, desktop environment, or graphical
+session. Dashboards are declared with TOML and a documented CSS subset, bind
+directly to sensor values, and render into the existing `asterctl-lcd`
+transport.
+
+The renderer supports reusable components, flex layouts, text, images,
+progress bars, graphs, gauges, conditional content, explicit font assets, and
+live reload during dashboard development. Existing AOOSTAR-X panel rendering
+remains available.
+
+The `ultrawide-monitor` example recreates a dense hardware telemetry dashboard
+optimized for the AOOSTAR display:
+
+<img src="docs/img/ultrawide-monitor-dashboard.png" alt="Ultrawide hardware monitor dashboard" width="960">
+
+Render the example to `out/dashboard.png` without connecting an LCD:
+
+```shell
+cargo run --bin asterctl -- \
+  --dashboard examples/dashboards/ultrawide-monitor/dashboard.toml \
+  --sensor-path examples/dashboards/ultrawide-monitor/values.txt \
+  --render-once \
+  --save
+```
+
+See [Widget Dashboards](docs/widget-dashboard.md) for the configuration format,
+supported widgets, CSS properties, sensor bindings, and continuous display
+mode.
+
 ## Features
 
 - Control the AOOSTAR WTR MAX and GEM12+ PRO second screen from Linux.
@@ -16,6 +48,9 @@ Check out the **[User Guide](https://zehnm.github.io/aoostar-rs)** for a list of
 - Render dynamic sensor panels defined from the AOOSTAR-X software.
     - Update sensor values from simple text files.
     - Rotate through multiple panels in a defined interval.
+- Render custom widget dashboards using TOML, CSS, and live sensor bindings.
+    - Preview dashboards headlessly as PNG files.
+    - Send continuously updated frames to the LCD.
 - USB device/serial port selection.
 
 ## Disclaimer
