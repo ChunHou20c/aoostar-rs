@@ -124,11 +124,10 @@
 
 .metric-row {
     align-items: end;
-    gap: 4px;
+    gap: 3px;
 }
 
 .metric-value {
-    min-width: 72px;
     font-family: "HarmonyOS Sans SC";
     font-size: 28px;
     font-weight: 700;

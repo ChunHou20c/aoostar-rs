@@ -189,7 +189,7 @@ fill = true
 [[root.children.children.children]]
 type = "component"
 component = "progress-card"
-params = { label = "MEMORY", icon = "", display-value = "{{ memory_usage | number(0) }}", unit = "%", sensor-value = "{{ memory_usage }}", accent = "cyan" }
+params = { label = "MEMORY", icon = "", display-value = "{{ memory_usage | number(0) }}", unit = "%", sensor-value = "{{ memory_usage }}", accent = "cyan" }
 
 [[root.children.children.children]]
 type = "component"
@@ -203,7 +203,7 @@ class = ["grid-row"]
 [[root.children.children.children]]
 type = "component"
 component = "detail-card"
-params = { label = "MEM TOTAL", icon = "", display-value = "{{ memory_total }}", unit = "GB", note = "ECC: ENABLED", accent = "cyan" }
+params = { label = "MEM TOTAL", icon = "", display-value = "{{ memory_total }}", unit = "GB", note = "ECC: ENABLED", accent = "cyan" }
 
 [[root.children.children.children]]
 type = "component"
