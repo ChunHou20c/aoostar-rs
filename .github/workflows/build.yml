@@ -45,7 +45,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install build deps
-        run: sudo apt install pkg-config libudev-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes pkg-config libudev-dev
 
       - uses: auguwu/clippy-action@1.4.0
         with:
@@ -76,7 +78,9 @@ jobs:
           echo "ARTIFACT_NAME=${{ env.APP_NAME }}-$APP_VERSION-${{ env.LINUX_ARTIFACT_SUFFIX }}" >> $GITHUB_ENV
 
       - name: Install build deps
-        run: sudo apt install pkg-config libudev-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes pkg-config libudev-dev
 
       - name: Cache dependencies
         id: cache-dependencies
