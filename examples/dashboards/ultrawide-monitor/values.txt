@@ -1,21 +1,20 @@
-cpu_temperature: 65
-cpu_percent: 47.7
-memory_usage: 77
-memory_temperature: 48
-net_ip_address: 192.0.2.10
-gpu_core: 38
+cpu_temperature: 42
+load_avg_one: 1.25
+load_history: 0.30,0.75,0.42,1.25,0.82
+memory_usage: 45
+memory_used: 14.4
+memory_total: 32
+swap_used: 0.0
 gpu_temperature: 58
-net_upload_speed: 100
-net_upload_speed#unit: K/S
-net_download_speed: 120
-net_download_speed#unit: M/S
-storage_ssd[0]['temperature']: 31
-storage_ssd[0]['used']: 17
-storage_ssd[1]['temperature']: 32
-storage_ssd[1]['used']: 48
-storage_hdd[0]['temperature']: 36
-storage_hdd[0]['used']: 22
-storage_hdd[1]['temperature']: 37
-storage_hdd[1]['used']: 63
-hostname: aoostar
-uptime: 1D 04H 22M
+disk_usage: 72
+disk_free: 124
+disk_name: NVME_01 (P2)
+nvme_temperature: 35
+net_upload_speed: 12.4
+net_upload_speed#unit: MB/S
+net_download_speed: 85.1
+net_download_speed#unit: MB/S
+network_interface: enp3s0
+net_ip_address: 192.168.1.99
+hostname: NODE-99
+uptime: 14D 02H

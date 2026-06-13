@@ -1,153 +1,249 @@
 .dashboard {
-    display: flex;
-    flex-direction: column;
     width: 960px;
     height: 376px;
-    padding: 12px;
-    gap: 8px;
     background-color: #131313;
+    color: #e5e2e1;
+    font-family: "JetBrains Mono";
+    overflow: hidden;
 }
 
 .top-bar {
-    display: flex;
-    flex-direction: row;
+    height: 48px;
+    flex-shrink: 0;
+    padding: 8px;
     justify-content: space-between;
     align-items: center;
-    padding: 6px;
-    height: 38px;
     background-color: #1c1b1b;
-    border-radius: 4px;
+    border-width: 1px;
+    border-color: #3a494a;
 }
 
 .top-bar-left {
-    display: flex;
-    flex-direction: row;
     align-items: center;
     gap: 12px;
 }
 
 .top-bar-title {
-    font-family: "DejaVu Sans";
-    font-size: 20px;
+    color: #00dce5;
+    font-size: 22px;
     font-weight: 700;
-    color: #00f5ff;
+    line-height: 1;
     white-space: nowrap;
 }
 
-.top-bar-sep {
-    font-family: "DejaVu Sans";
-    font-size: 20px;
+.header-divider {
+    width: 1px;
+    height: 20px;
+    flex-shrink: 0;
+    background-color: #3a494a;
+}
+
+.hostname {
+    justify-content: center;
+}
+
+.micro-label {
+    color: #b9caca;
+    font-size: 8px;
     font-weight: 700;
-    color: #3a494a;
+    line-height: 1;
     white-space: nowrap;
 }
 
-.top-bar-hostname {
-    display: flex;
-    flex-direction: column;
-}
-
-.top-bar-hostname-title {
-    font-family: "DejaVu Sans";
-    font-size: 10px;
-    font-weight: 700;
-    color: #849495;
+.hostname-value {
+    color: #00dce5;
+    font-size: 11px;
+    line-height: 1;
     white-space: nowrap;
 }
 
-.top-bar-hostname-value {
-    font-family: "DejaVu Sans";
-    font-size: 16px;
-    font-weight: 700;
-    color: #e5e2e1;
-    white-space: nowrap;
-}
-
-.top-bar-uptime {
-    font-family: "DejaVu Sans";
-    font-size: 12px;
-    font-weight: 700;
-    color: #e5e2e1;
-    white-space: nowrap;
-}
-
-.grid-row {
-    display: flex;
-    flex-direction: row;
-    flex-grow: 1;
-    height: 0%;
+.uptime-group {
+    align-items: center;
     gap: 8px;
 }
 
-.sensor-module {
-    display: flex;
-    flex-direction: column;
+.status-pip {
+    width: 7px;
+    height: 7px;
+    flex-shrink: 0;
+    background-color: #00dce5;
+    border-radius: 4px;
+}
+
+.uptime {
+    color: #b9caca;
+    font-size: 9px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.content {
     flex-grow: 1;
+    min-height: 0;
+    padding: 12px;
+    gap: 8px;
+}
+
+.grid-row {
+    height: 0%;
+    flex-grow: 1;
+    gap: 8px;
+}
+
+.sensor-card {
     width: 0%;
-    background-color: #131313;
+    min-width: 0;
+    flex-grow: 1;
+    padding: 8px;
+    justify-content: space-between;
+    background-color: #201f1f;
     border-width: 1px;
     border-color: #3a494a;
-    border-radius: 4px;
-    padding: 10px;
-    justify-content: space-between;
 }
 
-.module-header {
-    display: flex;
-    flex-direction: row;
+.card-header {
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: start;
 }
 
-.label-cyan {
-    font-family: "DejaVu Sans";
-    font-size: 10px;
+.card-label {
+    color: #b9caca;
+    font-size: 9px;
     font-weight: 700;
-    color: #00f5ff;
+    line-height: 1;
     white-space: nowrap;
 }
 
-.label-orange {
-    font-family: "DejaVu Sans";
-    font-size: 10px;
-    font-weight: 700;
-    color: #ffb800;
-    white-space: nowrap;
-}
-
-.icon-cyan {
+.card-icon {
+    color: #b9caca;
     font-family: "Symbols Nerd Font Mono";
     font-size: 12px;
-    color: #00f5ff;
+    line-height: 1;
     white-space: nowrap;
 }
 
-.icon-orange {
-    font-family: "Symbols Nerd Font Mono";
-    font-size: 12px;
-    color: #ffb800;
-    white-space: nowrap;
+.metric-row {
+    align-items: end;
+    gap: 4px;
 }
 
-.sensor-value {
+.metric-value {
+    min-width: 72px;
     font-family: "HarmonyOS Sans SC";
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
-    color: #e5e2e1;
-    text-align: left;
+    line-height: 1;
     white-space: nowrap;
 }
 
-.progress-cyan {
-    height: 4px;
-    color: #00f5ff;
-    background-color: #1c1b1b;
-    border-radius: 2px;
+.detail-value {
+    font-size: 24px;
 }
 
-.progress-orange {
-    height: 4px;
-    color: #ffb800;
-    background-color: #1c1b1b;
-    border-radius: 2px;
+.metric-unit {
+    color: #b9caca;
+    font-size: 10px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.card-note {
+    color: #b9caca;
+    font-size: 7px;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.card-progress {
+    height: 5px;
+    flex-shrink: 0;
+    background-color: #353534;
+}
+
+.load-history {
+    height: 13px;
+    flex-shrink: 0;
+    color: #00dce5;
+}
+
+.cyan {
+    color: #00dce5;
+}
+
+.amber {
+    color: #ffba20;
+}
+
+.network-details {
+    gap: 2px;
+}
+
+.network-interface {
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.network-address {
+    color: #b9caca;
+    font-size: 8px;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.link-state {
+    align-items: center;
+    gap: 5px;
+}
+
+.link-pip {
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+    background-color: #00dce5;
+    border-radius: 3px;
+}
+
+.footer {
+    height: 24px;
+    flex-shrink: 0;
+    padding: 8px;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #2a2a2a;
+    border-width: 1px;
+    border-color: #3a494a;
+}
+
+.footer-left {
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-ready {
+    color: #00dce5;
+    font-size: 8px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.footer-divider {
+    width: 1px;
+    height: 9px;
+    flex-shrink: 0;
+    background-color: #3a494a;
+}
+
+.footer-message {
+    color: #b9caca;
+    font-size: 7px;
+    white-space: nowrap;
+}
+
+.footer-version {
+    color: #b9caca;
+    font-size: 7px;
+    white-space: nowrap;
+    opacity: 0.5;
 }

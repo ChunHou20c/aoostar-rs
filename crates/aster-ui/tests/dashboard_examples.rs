@@ -125,6 +125,31 @@ fn loads_advanced_components_example() {
 }
 
 #[test]
+fn loads_ultrawide_monitor_example() {
+    let dashboard = Dashboard::load(workspace_path(
+        "examples/dashboards/ultrawide-monitor/dashboard.toml",
+    ))
+    .unwrap();
+
+    assert_eq!(dashboard.root().id(), Some("ultrawide-dashboard"));
+    let layout = dashboard.compute_layout().unwrap();
+    assert_eq!(
+        (layout.root().width(), layout.root().height()),
+        (960.0, 376.0)
+    );
+
+    let image = Renderer::new(&dashboard)
+        .unwrap()
+        .render_with_values(
+            &dashboard,
+            &load_values("examples/dashboards/ultrawide-monitor/values.txt"),
+        )
+        .unwrap();
+    assert_eq!(image.dimensions(), (960, 376));
+    assert!(image.pixels().any(|pixel| pixel[3] > 0));
+}
+
+#[test]
 fn recreates_original_panel_without_background_images() {
     let dashboard = Dashboard::load(workspace_path(
         "examples/dashboards/original-panel-recreation/dashboard.toml",
